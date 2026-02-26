@@ -1,0 +1,393 @@
+// modules/report_generator.naab - Multi-format report generation
+// Generates reports in JSON, HTML, CSV, SARIF, and Markdown formats
+
+use io
+use json
+use file
+use string
+use time
+
+export fn generate_report(results, format, output_path) {
+    io.write("  [REPORT] Generating ", format, " report: ", output_path, "\n")
+
+    if format == "json" {
+        return generate_json_report(results, output_path)
+    } else if format == "html" {
+        return generate_html_report(results, output_path)
+    } else if format == "csv" {
+        return generate_csv_report(results, output_path)
+    } else if format == "sarif" {
+        return generate_sarif_report(results, output_path)
+    } else if format == "markdown" || format == "md" {
+        return generate_markdown_report(results, output_path)
+    } else {
+        io.write("  ⚠ Unknown format: ", format, ", using JSON\n")
+        return generate_json_report(results, output_path)
+    }
+}
+
+fn generate_json_report(results, output_path) {
+    // Simple JSON output
+    let report = {
+        "timestamp": time.now(),
+        "format": "json",
+        "results": results
+    }
+
+    file.write(output_path, json.stringify(report, true))
+
+    io.write("  ✓ JSON report saved: ", output_path, "\n")
+    return {"status": "SUCCESS", "path": output_path}
+}
+
+fn generate_html_report(results, output_path) {
+    // Generate interactive HTML report with Chart.js
+
+    let html = <<python[results]
+import json
+
+results_data = results if isinstance(results, dict) else {"data": results}
+
+# Calculate summary statistics
+vessels = results_data.get("vessels", [])
+total_vessels = len(vessels)
+compiled_count = sum(1 for v in vessels if v.get("status") == "COMPILED")
+cached_count = sum(1 for v in vessels if v.get("status") == "CACHED")
+failed_count = sum(1 for v in vessels if v.get("status") == "FAILED")
+
+# Generate HTML
+html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAAb Pivot - Evolution Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+        }}
+        .header {{
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            text-align: center;
+        }}
+        .header h1 {{
+            color: #667eea;
+            font-size: 3em;
+            margin-bottom: 10px;
+        }}
+        .header p {{
+            color: #666;
+            font-size: 1.2em;
+        }}
+        .card {{
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }}
+        .metric-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }}
+        .metric {{
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+        }}
+        .metric-value {{
+            font-size: 3em;
+            font-weight: bold;
+            display: block;
+        }}
+        .metric-label {{
+            font-size: 1em;
+            opacity: 0.9;
+            margin-top: 10px;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }}
+        th, td {{
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }}
+        th {{
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }}
+        tr:hover {{
+            background: #f9f9f9;
+        }}
+        .status-badge {{
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }}
+        .status-compiled {{
+            background: #4caf50;
+            color: white;
+        }}
+        .status-cached {{
+            background: #2196f3;
+            color: white;
+        }}
+        .status-failed {{
+            background: #f44336;
+            color: white;
+        }}
+        .chart-container {{
+            position: relative;
+            height: 400px;
+            margin: 30px 0;
+        }}
+        footer {{
+            text-align: center;
+            color: white;
+            padding: 40px 20px;
+            font-size: 0.9em;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 NAAb Pivot</h1>
+            <p>Polyglot Code Evolution Report</p>
+        </div>
+
+        <div class="card">
+            <h2>📊 Summary</h2>
+            <div class="metric-grid">
+                <div class="metric">
+                    <span class="metric-value">{total_vessels}</span>
+                    <span class="metric-label">Total Vessels</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">{compiled_count}</span>
+                    <span class="metric-label">Compiled</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">{cached_count}</span>
+                    <span class="metric-label">Cached</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-value">{failed_count}</span>
+                    <span class="metric-label">Failed</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📦 Vessels</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Target Language</th>
+                        <th>Status</th>
+                        <th>Profile</th>
+                    </tr>
+                </thead>
+                <tbody>
+"""
+
+for vessel in vessels:
+    name = vessel.get("name", "unknown")
+    target = vessel.get("target", "N/A")
+    status = vessel.get("status", "UNKNOWN")
+    profile = vessel.get("profile", "N/A")
+
+    status_class = "status-" + status.lower()
+
+    html += f"""
+                    <tr>
+                        <td>{name}</td>
+                        <td>{target}</td>
+                        <td><span class="status-badge {status_class}">{status}</span></td>
+                        <td>{profile}</td>
+                    </tr>
+"""
+
+html += """
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>📈 Distribution</h2>
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+
+        <footer>
+            <p>Generated by NAAb Pivot v1.0.0</p>
+            <p>🔗 <a href="https://github.com/b-macker/naab-pivot" style="color: white;">github.com/b-macker/naab-pivot</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // Status distribution chart
+        const ctx = document.getElementById('statusChart').getContext('2d');
+        new Chart(ctx, {{
+            type: 'doughnut',
+            data: {{
+                labels: ['Compiled', 'Cached', 'Failed'],
+                datasets: [{{
+                    data: [{compiled_count}, {cached_count}, {failed_count}],
+                    backgroundColor: [
+                        '#4caf50',
+                        '#2196f3',
+                        '#f44336'
+                    ]
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {{
+                    legend: {{
+                        position: 'bottom'
+                    }}
+                }}
+            }}
+        }});
+    </script>
+</body>
+</html>
+"""
+
+print(html)
+    >>
+
+    file.write(output_path, html)
+
+    io.write("  ✓ HTML report saved: ", output_path, "\n")
+    return {"status": "SUCCESS", "path": output_path}
+}
+
+fn generate_csv_report(results, output_path) {
+    // Generate CSV report
+    let csv = "Name,Target,Status,Profile,Source,Binary\n"
+
+    let vessels = results["vessels"] || []
+
+    for vessel in vessels {
+        let name = vessel["name"] || ""
+        let target = vessel["target"] || ""
+        let status = vessel["status"] || ""
+        let profile = vessel["profile"] || ""
+        let src = vessel["src"] || ""
+        let bin = vessel["bin"] || ""
+
+        csv = csv + name + "," + target + "," + status + "," + profile + "," + src + "," + bin + "\n"
+    }
+
+    file.write(output_path, csv)
+
+    io.write("  ✓ CSV report saved: ", output_path, "\n")
+    return {"status": "SUCCESS", "path": output_path}
+}
+
+fn generate_sarif_report(results, output_path) {
+    // Generate SARIF format for GitHub Code Scanning
+    let sarif = {
+        "version": "2.1.0",
+        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+        "runs": [{
+            "tool": {
+                "driver": {
+                    "name": "NAAb Pivot",
+                    "version": "1.0.0",
+                    "informationUri": "https://github.com/b-macker/naab-pivot"
+                }
+            },
+            "results": []
+        }]
+    }
+
+    file.write(output_path, json.stringify(sarif, true))
+
+    io.write("  ✓ SARIF report saved: ", output_path, "\n")
+    return {"status": "SUCCESS", "path": output_path}
+}
+
+fn generate_markdown_report(results, output_path) {
+    // Generate Markdown report
+    let md = "# NAAb Pivot - Evolution Report\n\n"
+    md = md + "Generated: " + time.now() + "\n\n"
+    md = md + "## Summary\n\n"
+
+    let vessels = results["vessels"] || []
+    let total = array.length(vessels)
+    let compiled = count_status(vessels, "COMPILED")
+    let cached = count_status(vessels, "CACHED")
+    let failed = count_status(vessels, "FAILED")
+
+    md = md + "| Metric | Count |\n"
+    md = md + "|--------|-------|\n"
+    md = md + "| Total Vessels | " + total + " |\n"
+    md = md + "| Compiled | " + compiled + " |\n"
+    md = md + "| Cached | " + cached + " |\n"
+    md = md + "| Failed | " + failed + " |\n\n"
+
+    md = md + "## Vessels\n\n"
+    md = md + "| Name | Target | Status | Profile |\n"
+    md = md + "|------|--------|--------|--------|\n"
+
+    for vessel in vessels {
+        let name = vessel["name"] || "N/A"
+        let target = vessel["target"] || "N/A"
+        let status = vessel["status"] || "N/A"
+        let profile = vessel["profile"] || "N/A"
+
+        md = md + "| " + name + " | " + target + " | " + status + " | " + profile + " |\n"
+    }
+
+    md = md + "\n---\n\n"
+    md = md + "*Generated by [NAAb Pivot](https://github.com/b-macker/naab-pivot)*\n"
+
+    file.write(output_path, md)
+
+    io.write("  ✓ Markdown report saved: ", output_path, "\n")
+    return {"status": "SUCCESS", "path": output_path}
+}
+
+fn count_status(vessels, target_status) {
+    let count = 0
+
+    for vessel in vessels {
+        if vessel["status"] == target_status {
+            count = count + 1
+        }
+    }
+
+    return count
+}

@@ -1,0 +1,134 @@
+// modules/config_manager.naab - Configuration management
+// Loads and merges configs from multiple sources
+
+use file
+use json
+use env
+use io
+
+export fn load_config() {
+    // Load configuration from multiple sources (project > user > defaults)
+    let configs = []
+
+    // 1. Default config
+    configs = array.push(configs, get_default_config())
+
+    // 2. User global config
+    let user_config_path = env.get_var("HOME") + "/.pivotrc"
+    if file.exists(user_config_path) {
+        try {
+            let user_config_str = file.read(user_config_path)
+            let user_config = json.parse(user_config_str)
+            configs = array.push(configs, user_config)
+            io.write("  📝 Loaded user config: ", user_config_path, "\n")
+        } catch (e) {
+            io.write("  ⚠ Failed to load user config: ", e, "\n")
+        }
+    }
+
+    // 3. Project-local config
+    if file.exists(".pivotrc") {
+        try {
+            let project_config_str = file.read(".pivotrc")
+            let project_config = json.parse(project_config_str)
+            configs = array.push(configs, project_config)
+            io.write("  📝 Loaded project config: .pivotrc\n")
+        } catch (e) {
+            io.write("  ⚠ Failed to load project config: ", e, "\n")
+        }
+    }
+
+    // 4. Environment variable overrides
+    let env_config = load_env_config()
+    if env_config != null {
+        configs = array.push(configs, env_config)
+    }
+
+    // Merge all configs (later configs override earlier ones)
+    return merge_configs(configs)
+}
+
+fn get_default_config() {
+    return {
+        "default_profile": "balanced",
+        "default_target": "auto",
+        "cache_dir": env.get_var("HOME") + "/.cache/naab-pivot",
+        "output_dir": "./vessels",
+        "dashboard_port": 8080,
+        "tolerance": 0.001,
+        "benchmark_iterations": 10,
+        "parallel_compilation": true,
+        "incremental_build": true
+    }
+}
+
+fn load_env_config() {
+    // Load config from environment variables
+    let config = {}
+    let has_vars = false
+
+    let profile = env.get_var("PIVOT_PROFILE")
+    if profile != "" {
+        config["default_profile"] = profile
+        has_vars = true
+    }
+
+    let output = env.get_var("PIVOT_OUTPUT")
+    if output != "" {
+        config["output_dir"] = output
+        has_vars = true
+    }
+
+    let port = env.get_var("PIVOT_DASHBOARD_PORT")
+    if port != "" {
+        config["dashboard_port"] = json.parse(port)
+        has_vars = true
+    }
+
+    if has_vars {
+        return config
+    }
+
+    return null
+}
+
+fn merge_configs(configs) {
+    // Simple merge - later configs override earlier ones
+    let merged = {}
+
+    for config in configs {
+        // Copy all keys from config to merged
+        // Note: NAAb doesn't have dict.keys() yet, so we use a workaround
+
+        // For now, manually copy known keys
+        if config["default_profile"] != null {
+            merged["default_profile"] = config["default_profile"]
+        }
+        if config["default_target"] != null {
+            merged["default_target"] = config["default_target"]
+        }
+        if config["cache_dir"] != null {
+            merged["cache_dir"] = config["cache_dir"]
+        }
+        if config["output_dir"] != null {
+            merged["output_dir"] = config["output_dir"]
+        }
+        if config["dashboard_port"] != null {
+            merged["dashboard_port"] = config["dashboard_port"]
+        }
+        if config["tolerance"] != null {
+            merged["tolerance"] = config["tolerance"]
+        }
+        if config["benchmark_iterations"] != null {
+            merged["benchmark_iterations"] = config["benchmark_iterations"]
+        }
+        if config["parallel_compilation"] != null {
+            merged["parallel_compilation"] = config["parallel_compilation"]
+        }
+        if config["incremental_build"] != null {
+            merged["incremental_build"] = config["incremental_build"]
+        }
+    }
+
+    return merged
+}

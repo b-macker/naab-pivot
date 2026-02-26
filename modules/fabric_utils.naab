@@ -1,0 +1,84 @@
+// modules/fabric_utils.naab - Utility functions from Helix
+// JSON extraction, string utilities, and helper functions
+
+use string
+use json
+
+export fn extract_json(raw_output, context) {
+    // Extract JSON from potentially messy output
+    // Handles cases where output contains extra text before/after JSON
+
+    let trimmed = string.trim(raw_output)
+
+    // Find JSON boundaries
+    let start = -1
+    let end = -1
+
+    // Look for object start
+    if string.index_of(trimmed, "{") != -1 {
+        start = string.index_of(trimmed, "{")
+
+        // Find matching closing brace
+        let brace_count = 0
+        let in_json = false
+
+        for i in start..string.length(trimmed) {
+            let char = string.char_at(trimmed, i)
+
+            if char == "{" {
+                brace_count = brace_count + 1
+                in_json = true
+            } else if char == "}" {
+                brace_count = brace_count - 1
+
+                if brace_count == 0 && in_json {
+                    end = i + 1
+                    break
+                }
+            }
+        }
+    }
+
+    // Look for array start if no object found
+    if start == -1 && string.index_of(trimmed, "[") != -1 {
+        start = string.index_of(trimmed, "[")
+        end = string.length(trimmed)
+    }
+
+    // Extract JSON substring
+    if start != -1 && end != -1 {
+        let json_str = string.substring(trimmed, start, end)
+
+        try {
+            return json.parse(json_str)
+        } catch (e) {
+            return {
+                "error": "JSON_PARSE_ERROR",
+                "context": context,
+                "raw": raw_output
+            }
+        }
+    }
+
+    // If no JSON found, return error
+    return {
+        "error": "NO_JSON_FOUND",
+        "context": context,
+        "raw": raw_output
+    }
+}
+
+export fn safe_parse(json_str) {
+    // Safely parse JSON with error handling
+    try {
+        return {
+            "success": true,
+            "data": json.parse(json_str)
+        }
+    } catch (e) {
+        return {
+            "success": false,
+            "error": "" + e
+        }
+    }
+}

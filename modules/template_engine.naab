@@ -1,0 +1,92 @@
+// modules/template_engine.naab - Code template rendering engine
+// Loads and renders code generation templates with variable substitution
+
+use file
+use string
+use json
+use io
+
+export fn generate(func_spec, target, profile_config) {
+    // Load template for target language
+    let template_path = "templates/" + string.lower(target) + "_template.naab"
+
+    if file.exists(template_path) == false {
+        io.write("    ⚠ Template not found: ", template_path, "\n")
+        return generate_fallback(func_spec, target)
+    }
+
+    let template = file.read(template_path)
+
+    // Perform variable substitution
+    let code = template
+
+    // Basic substitutions
+    code = string.replace(code, "${FUNCTION_NAME}", func_spec["name"], true)
+    code = string.replace(code, "${COMPLEXITY}", "" + func_spec["complexity"], true)
+    code = string.replace(code, "${ITERATIONS}", "" + (func_spec["complexity"] * 10), true)
+
+    // Profile-based substitutions
+    if profile_config != null {
+        let opt_level = profile_config["optimization_level"] || "O2"
+        code = string.replace(code, "${OPT_LEVEL}", opt_level, true)
+
+        let use_simd = profile_config["use_simd"] || false
+        if use_simd == true {
+            code = string.replace(code, "${SIMD_FLAGS}", "-march=native -mtune=native", true)
+        } else {
+            code = string.replace(code, "${SIMD_FLAGS}", "", true)
+        }
+    }
+
+    // Advanced substitutions based on function characteristics
+    if func_spec["has_loops"] == true {
+        code = add_loop_optimizations(code, target)
+    }
+
+    if func_spec["math_operations"] != null && func_spec["math_operations"] > 5 {
+        code = add_math_optimizations(code, target)
+    }
+
+    return code
+}
+
+fn generate_fallback(func_spec, target) {
+    // Generate basic template when template file is missing
+    let name = func_spec["name"]
+    let iterations = func_spec["complexity"] * 10
+
+    if target == "GO" {
+        return "package main\nimport \"fmt\"\nfunc " + name + "(val float64) float64 {\n    result := val\n    for i := 0; i < " + iterations + "; i++ {\n        result = result + 0.01\n    }\n    return result\n}\nfunc main() {\n    fmt.Println(" + name + "(100.0))\n}\n"
+    } else if target == "CPP" {
+        return "#include <iostream>\ndouble " + name + "(double val) {\n    double result = val;\n    for (int i = 0; i < " + iterations + "; i++) {\n        result += 0.01;\n    }\n    return result;\n}\nint main() {\n    std::cout << " + name + "(100.0) << std::endl;\n    return 0;\n}\n"
+    } else if target == "RUST" {
+        return "fn " + name + "(val: f64) -> f64 {\n    let mut result = val;\n    for _ in 0.." + iterations + " {\n        result += 0.01;\n    }\n    result\n}\nfn main() {\n    println!(\"{}\", " + name + "(100.0));\n}\n"
+    }
+
+    return "// Template not found for " + target + "\n"
+}
+
+fn add_loop_optimizations(code, target) {
+    // Add loop-specific optimizations based on target language
+    if target == "CPP" {
+        // Add #pragma for loop unrolling
+        code = string.replace(code, "for (", "#pragma GCC unroll 4\n    for (", false)
+    } else if target == "RUST" {
+        // Add .par_iter() for parallel iteration (if rayon available)
+        code = string.replace(code, "for ", "// TODO: Consider rayon parallel iterator\n    for ", false)
+    }
+
+    return code
+}
+
+fn add_math_optimizations(code, target) {
+    // Add math-specific optimizations
+    if target == "CPP" {
+        // Ensure -ffast-math comment is present
+        if string.index_of(code, "ffast-math") == -1 {
+            code = "// Compile with -ffast-math for additional optimizations\n" + code
+        }
+    }
+
+    return code
+}
