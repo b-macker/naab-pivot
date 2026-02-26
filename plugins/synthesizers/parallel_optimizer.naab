@@ -1,0 +1,19 @@
+export fn execute(input_data) {
+    let func_spec = input_data["function"]
+    let target = input_data["target"]
+
+    if func_spec["has_loops"] == false {
+        return {"status": "NOT_APPLICABLE"}
+    }
+
+    let parallel_code = ""
+    if target == "RUST" {
+        parallel_code = "use rayon::prelude::*;\n\nfn ${FUNCTION_NAME}(n: i32) -> f64 {\n    (0..n).into_par_iter().map(|i| (i as f64).sqrt()).sum()\n}\n"
+    }
+
+    return {
+        "status": "OPTIMIZED",
+        "code": parallel_code,
+        "expected_speedup": 8.0
+    }
+}

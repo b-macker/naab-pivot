@@ -1,0 +1,9 @@
+{
+  "id": "property-checker",
+  "version": "1.0.0",
+  "type": "validator",
+  "name": "Property-Based Checker",
+  "description": "QuickCheck-style property-based testing",
+  "author": "NAAb Pivot Team",
+  "entry_point": "execute"
+}

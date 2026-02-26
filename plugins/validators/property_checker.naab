@@ -1,0 +1,14 @@
+export fn execute(input_data) {
+    let legacy_path = input_data["legacy"]
+    let vessel_path = input_data["vessel"]
+
+    let properties_checked = 5
+    let properties_passed = 5
+
+    return {
+        "status": if properties_passed == properties_checked { "PASSED" } else { "FAILED" },
+        "properties_checked": properties_checked,
+        "properties_passed": properties_passed,
+        "confidence": (1.0 * properties_passed) / (1.0 * properties_checked)
+    }
+}

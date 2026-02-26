@@ -1,0 +1,9 @@
+{
+  "id": "formal-verifier",
+  "version": "1.0.0",
+  "type": "validator",
+  "name": "Formal Verifier",
+  "description": "SMT-solver based formal verification (experimental)",
+  "author": "NAAb Pivot Team",
+  "entry_point": "execute"
+}

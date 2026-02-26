@@ -1,0 +1,10 @@
+{
+  "id": "gpu-optimizer",
+  "version": "1.0.0",
+  "type": "synthesizer",
+  "name": "GPU Optimizer",
+  "description": "Generates GPU-accelerated code",
+  "author": "NAAb Pivot Team",
+  "target_languages": ["cuda", "opencl"],
+  "entry_point": "execute"
+}

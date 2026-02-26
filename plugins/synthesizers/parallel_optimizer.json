@@ -1,0 +1,10 @@
+{
+  "id": "parallel-optimizer",
+  "version": "1.0.0",
+  "type": "synthesizer",
+  "name": "Parallel Optimizer",
+  "description": "Generates parallel code with Rayon/OpenMP",
+  "author": "NAAb Pivot Team",
+  "target_languages": ["rust", "cpp", "go"],
+  "entry_point": "execute"
+}

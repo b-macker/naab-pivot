@@ -1,0 +1,10 @@
+{
+  "id": "io-detector",
+  "version": "1.0.0",
+  "type": "analyzer",
+  "name": "I/O Bound Detector",
+  "description": "Detects I/O-bound workloads",
+  "author": "NAAb Pivot Team",
+  "supported_languages": ["python", "ruby", "javascript", "go"],
+  "entry_point": "execute"
+}

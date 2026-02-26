@@ -1,0 +1,10 @@
+{
+  "id": "ml-detector",
+  "version": "1.0.0",
+  "type": "analyzer",
+  "name": "ML Workload Detector",
+  "description": "Detects machine learning and data science workloads",
+  "author": "NAAb Pivot Team",
+  "supported_languages": ["python", "julia", "r"],
+  "entry_point": "execute"
+}

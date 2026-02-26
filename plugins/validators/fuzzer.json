@@ -1,0 +1,9 @@
+{
+  "id": "fuzzer",
+  "version": "1.0.0",
+  "type": "validator",
+  "name": "Fuzz Tester",
+  "description": "Property-based fuzz testing for validation",
+  "author": "NAAb Pivot Team",
+  "entry_point": "execute"
+}

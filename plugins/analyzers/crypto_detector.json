@@ -1,0 +1,10 @@
+{
+  "id": "crypto-detector",
+  "version": "1.0.0",
+  "type": "analyzer",
+  "name": "Crypto Workload Detector",
+  "description": "Detects cryptographic operations",
+  "author": "NAAb Pivot Team",
+  "supported_languages": ["python", "ruby", "javascript", "go", "rust"],
+  "entry_point": "execute"
+}

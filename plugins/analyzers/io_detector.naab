@@ -1,0 +1,21 @@
+export fn execute(input_data) {
+    let source = input_data["source"]
+    let io_keywords = ["open(", "read(", "write(", "requests.", "http", "socket", "file"]
+    let detected = false
+    let confidence = 0.0
+
+    for keyword in io_keywords {
+        if string.index_of(source, keyword) != -1 {
+            detected = true
+            confidence = confidence + 0.14
+        }
+    }
+
+    if confidence > 1.0 { confidence = 1.0 }
+
+    return {
+        "status": if detected { "IO_BOUND" } else { "CPU_BOUND" },
+        "confidence": confidence,
+        "recommended_optimizations": if detected { ["async_io", "buffering", "caching"] } else { ["simd", "parallelization"] }
+    }
+}

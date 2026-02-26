@@ -1,0 +1,10 @@
+{
+  "id": "simd-optimizer",
+  "version": "1.0.0",
+  "type": "synthesizer",
+  "name": "SIMD Optimizer",
+  "description": "Generates SIMD-optimized code",
+  "author": "NAAb Pivot Team",
+  "target_languages": ["cpp", "rust"],
+  "entry_point": "execute"
+}
