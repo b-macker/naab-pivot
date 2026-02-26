@@ -1,0 +1,86 @@
+{
+  "name": "custom",
+  "description": "User-customized profile template",
+  "version": "1.0.0",
+  "_comment": "Copy this to custom.json and modify as needed",
+
+  "optimization": {
+    "level": "O2",
+    "_comment_level": "Options: O0, O1, O2, O3, Oz (size), Os (size+speed)",
+    "simd_enabled": true,
+    "lto_enabled": false,
+    "_comment_lto": "Link-time optimization - slower builds, faster binaries",
+    "inline_threshold": "moderate",
+    "_comment_inline": "Options: minimal, moderate, aggressive, maximum",
+    "loop_unrolling": true,
+    "vectorization": true
+  },
+
+  "safety": {
+    "mode": "balanced",
+    "_comment_mode": "Options: none, minimal, balanced, strict",
+    "bounds_checking": "debug_only",
+    "_comment_bounds": "Options: never, debug_only, always",
+    "integer_overflow_checks": "debug_only",
+    "null_pointer_checks": "debug_only",
+    "stack_protector": "yes",
+    "allow_unsafe": false,
+    "_comment_unsafe": "WARNING: Only enable if you know what you're doing"
+  },
+
+  "compilation": {
+    "debug_symbols": false,
+    "warnings_as_errors": false,
+    "extra_warnings": true,
+    "strip_symbols": false
+  },
+
+  "parallelism": {
+    "enabled": true,
+    "threshold_complexity": 10,
+    "_comment_threshold": "Min complexity to trigger parallel execution",
+    "max_workers": 4,
+    "_comment_workers": "Number of parallel workers (0 = auto-detect CPUs)"
+  },
+
+  "target_languages": {
+    "allowed": ["rust", "go", "cpp", "zig", "julia"],
+    "_comment_allowed": "Languages enabled for this profile",
+    "preferred": "auto",
+    "_comment_preferred": "Options: auto, rust, go, cpp, zig, julia",
+    "blocked": [],
+    "_comment_blocked": "Languages NOT allowed (overrides allowed list)"
+  },
+
+  "compiler_flags": {
+    "_comment": "Custom flags per language",
+    "go": "",
+    "cpp": "-O2 -march=native",
+    "rust": "-C opt-level=2 -C target-cpu=native",
+    "zig": "-Doptimize=ReleaseFast",
+    "julia": "--optimize=2"
+  },
+
+  "runtime": {
+    "validation_mode": "standard",
+    "_comment_validation": "Options: minimal, basic, standard, strict, exhaustive",
+    "parity_tolerance": 0.001,
+    "_comment_tolerance": "Max relative error (0.001 = 0.1% deviation)",
+    "statistical_validation": true,
+    "fuzzing_enabled": false,
+    "property_testing": false
+  },
+
+  "build": {
+    "incremental": true,
+    "cache_enabled": true,
+    "reproducible": false
+  },
+
+  "reporting": {
+    "verbose": false,
+    "warnings_shown": "important",
+    "_comment_warnings": "Options: none, errors_only, important, all",
+    "performance_metrics": true
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "name": "wasm",
+  "description": "WebAssembly target - browser-compatible, sandboxed execution",
+  "version": "1.0.0",
+
+  "optimization": {
+    "level": "O3",
+    "simd_enabled": true,
+    "simd_type": "wasm128",
+    "lto_enabled": true,
+    "inline_threshold": "moderate",
+    "loop_unrolling": true,
+    "vectorization": true,
+    "size_optimization": false
+  },
+
+  "safety": {
+    "mode": "strict",
+    "bounds_checking": "always",
+    "integer_overflow_checks": "debug_only",
+    "null_pointer_checks": "always",
+    "stack_protector": "no",
+    "fortify_source": 0,
+    "address_sanitizer": false,
+    "undefined_behavior_sanitizer": false,
+    "memory_sandboxing": true
+  },
+
+  "compilation": {
+    "debug_symbols": false,
+    "warnings_as_errors": false,
+    "extra_warnings": true,
+    "pedantic": false,
+    "static_analysis": false,
+    "strip_symbols": false,
+    "wasm_bindgen": true
+  },
+
+  "parallelism": {
+    "enabled": true,
+    "threshold_complexity": 10,
+    "max_workers": 4,
+    "thread_safety_checks": "always",
+    "web_workers": true,
+    "shared_memory": true
+  },
+
+  "target_languages": {
+    "allowed": ["rust", "cpp", "zig", "go"],
+    "preferred": "rust",
+    "blocked": ["julia", "ruby", "php"],
+    "reason": "Rust has best WASM toolchain (wasm-pack, wasm-bindgen)"
+  },
+
+  "compiler_flags": {
+    "cpp": "-O3 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1",
+    "rust": "-C opt-level=3 --target wasm32-unknown-unknown -C lto=fat",
+    "zig": "-Doptimize=ReleaseFast -Dtarget=wasm32-freestanding",
+    "go": "GOOS=js GOARCH=wasm go build"
+  },
+
+  "runtime": {
+    "validation_mode": "standard",
+    "parity_tolerance": 0.001,
+    "statistical_validation": true,
+    "fuzzing_enabled": false,
+    "property_testing": false,
+    "browser_compatible": true
+  },
+
+  "build": {
+    "incremental": true,
+    "clean_build": false,
+    "cache_enabled": true,
+    "reproducible": false,
+    "wasm_opt": true,
+    "wasm_opt_level": 3
+  },
+
+  "reporting": {
+    "verbose": false,
+    "warnings_shown": "important",
+    "performance_metrics": true,
+    "safety_report": false,
+    "wasm_size_report": true
+  },
+
+  "wasm_specific": {
+    "target": "wasm32-unknown-unknown",
+    "enable_simd": true,
+    "enable_threads": true,
+    "enable_bulk_memory": true,
+    "enable_reference_types": true,
+    "memory_limit_mb": 256,
+    "stack_size_kb": 512
+  }
+}

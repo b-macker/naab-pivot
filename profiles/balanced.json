@@ -1,0 +1,78 @@
+{
+  "name": "balanced",
+  "description": "Default profile - balanced safety and performance (RECOMMENDED)",
+  "version": "1.0.0",
+  "default": true,
+
+  "optimization": {
+    "level": "O2",
+    "simd_enabled": true,
+    "lto_enabled": false,
+    "inline_threshold": "moderate",
+    "loop_unrolling": true,
+    "vectorization": true
+  },
+
+  "safety": {
+    "mode": "balanced",
+    "bounds_checking": "debug_only",
+    "integer_overflow_checks": "never",
+    "null_pointer_checks": "debug_only",
+    "stack_protector": "yes",
+    "fortify_source": 0,
+    "address_sanitizer": false,
+    "undefined_behavior_sanitizer": false
+  },
+
+  "compilation": {
+    "debug_symbols": false,
+    "warnings_as_errors": false,
+    "extra_warnings": false,
+    "pedantic": false,
+    "static_analysis": false
+  },
+
+  "parallelism": {
+    "enabled": true,
+    "threshold_complexity": 10,
+    "max_workers": 4,
+    "thread_safety_checks": "never"
+  },
+
+  "target_languages": {
+    "allowed": ["rust", "go", "cpp", "zig", "julia"],
+    "preferred": "auto",
+    "blocked": [],
+    "reason": "Auto-select based on workload characteristics"
+  },
+
+  "compiler_flags": {
+    "go": "",
+    "cpp": "-O2 -march=native -mtune=native",
+    "rust": "-C opt-level=2 -C target-cpu=native",
+    "zig": "-Doptimize=ReleaseFast",
+    "julia": "--optimize=2"
+  },
+
+  "runtime": {
+    "validation_mode": "standard",
+    "parity_tolerance": 0.001,
+    "statistical_validation": true,
+    "fuzzing_enabled": false,
+    "property_testing": false
+  },
+
+  "build": {
+    "incremental": true,
+    "clean_build": false,
+    "cache_enabled": true,
+    "reproducible": false
+  },
+
+  "reporting": {
+    "verbose": false,
+    "warnings_shown": "errors_only",
+    "performance_metrics": true,
+    "safety_report": false
+  }
+}

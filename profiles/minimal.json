@@ -1,0 +1,82 @@
+{
+  "name": "minimal",
+  "description": "Smallest binary size - optimized for space over speed",
+  "version": "1.0.0",
+
+  "optimization": {
+    "level": "Oz",
+    "simd_enabled": false,
+    "lto_enabled": true,
+    "inline_threshold": "minimal",
+    "loop_unrolling": false,
+    "vectorization": false,
+    "size_optimization": true
+  },
+
+  "safety": {
+    "mode": "minimal",
+    "bounds_checking": "never",
+    "integer_overflow_checks": "never",
+    "null_pointer_checks": "never",
+    "stack_protector": "no",
+    "fortify_source": 0,
+    "address_sanitizer": false,
+    "undefined_behavior_sanitizer": false
+  },
+
+  "compilation": {
+    "debug_symbols": false,
+    "warnings_as_errors": false,
+    "extra_warnings": false,
+    "pedantic": false,
+    "static_analysis": false,
+    "strip_symbols": true,
+    "optimize_for_size": true
+  },
+
+  "parallelism": {
+    "enabled": false,
+    "threshold_complexity": 999,
+    "max_workers": 1,
+    "thread_safety_checks": "never"
+  },
+
+  "target_languages": {
+    "allowed": ["rust", "zig", "cpp", "go"],
+    "preferred": "zig",
+    "blocked": ["julia", "ruby", "php"],
+    "reason": "Zig generates smallest binaries with no runtime"
+  },
+
+  "compiler_flags": {
+    "go": "-ldflags=-s -ldflags=-w",
+    "cpp": "-Os -s -ffunction-sections -fdata-sections -Wl,--gc-sections",
+    "rust": "-C opt-level=z -C lto=fat -C strip=symbols -C panic=abort",
+    "zig": "-Doptimize=ReleaseSmall -Dstrip=true",
+    "julia": "--optimize=1 --compile=min"
+  },
+
+  "runtime": {
+    "validation_mode": "basic",
+    "parity_tolerance": 0.01,
+    "statistical_validation": false,
+    "fuzzing_enabled": false,
+    "property_testing": false
+  },
+
+  "build": {
+    "incremental": true,
+    "clean_build": false,
+    "cache_enabled": true,
+    "reproducible": true,
+    "compress_binary": true
+  },
+
+  "reporting": {
+    "verbose": false,
+    "warnings_shown": "errors_only",
+    "performance_metrics": false,
+    "safety_report": false,
+    "binary_size_report": true
+  }
+}

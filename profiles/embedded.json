@@ -1,0 +1,96 @@
+{
+  "name": "embedded",
+  "description": "Embedded systems - no_std, minimal footprint, deterministic",
+  "version": "1.0.0",
+
+  "optimization": {
+    "level": "O2",
+    "simd_enabled": false,
+    "lto_enabled": true,
+    "inline_threshold": "moderate",
+    "loop_unrolling": true,
+    "vectorization": false,
+    "size_optimization": true,
+    "deterministic": true
+  },
+
+  "safety": {
+    "mode": "strict",
+    "bounds_checking": "always",
+    "integer_overflow_checks": "always",
+    "null_pointer_checks": "always",
+    "stack_protector": "yes",
+    "fortify_source": 1,
+    "address_sanitizer": false,
+    "undefined_behavior_sanitizer": false,
+    "panic_behavior": "abort"
+  },
+
+  "compilation": {
+    "debug_symbols": false,
+    "warnings_as_errors": true,
+    "extra_warnings": true,
+    "pedantic": true,
+    "static_analysis": true,
+    "strip_symbols": true,
+    "no_std": true,
+    "no_alloc": true
+  },
+
+  "parallelism": {
+    "enabled": false,
+    "threshold_complexity": 999,
+    "max_workers": 1,
+    "thread_safety_checks": "always",
+    "no_threads": true
+  },
+
+  "target_languages": {
+    "allowed": ["rust", "zig", "cpp"],
+    "preferred": "rust",
+    "blocked": ["go", "julia", "ruby", "php", "js"],
+    "reason": "Rust no_std for embedded safety guarantees"
+  },
+
+  "compiler_flags": {
+    "cpp": "-O2 -s -fno-exceptions -fno-rtti -ffunction-sections -fdata-sections -Wl,--gc-sections -nostdlib",
+    "rust": "-C opt-level=2 -C lto=fat -C panic=abort -C strip=symbols --target thumbv7em-none-eabihf",
+    "zig": "-Doptimize=ReleaseSmall -Dtarget=thumb-freestanding-eabihf -Dno-std=true"
+  },
+
+  "runtime": {
+    "validation_mode": "strict",
+    "parity_tolerance": 0.0001,
+    "statistical_validation": true,
+    "fuzzing_enabled": false,
+    "property_testing": true,
+    "no_dynamic_allocation": true,
+    "stack_size_limited": true
+  },
+
+  "build": {
+    "incremental": false,
+    "clean_build": true,
+    "cache_enabled": false,
+    "reproducible": true,
+    "cross_compile": true,
+    "static_linking": true
+  },
+
+  "reporting": {
+    "verbose": true,
+    "warnings_shown": "all",
+    "performance_metrics": true,
+    "safety_report": true,
+    "memory_usage_report": true,
+    "stack_usage_report": true
+  },
+
+  "embedded_specific": {
+    "target_arch": "arm-cortex-m4",
+    "no_std": true,
+    "no_alloc": true,
+    "panic_handler": "custom",
+    "global_allocator": "none"
+  }
+}

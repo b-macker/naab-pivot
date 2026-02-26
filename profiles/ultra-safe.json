@@ -1,0 +1,77 @@
+{
+  "name": "ultra-safe",
+  "description": "Maximum safety - no unsafe code, strict checks, debug symbols",
+  "version": "1.0.0",
+
+  "optimization": {
+    "level": "O1",
+    "simd_enabled": false,
+    "lto_enabled": false,
+    "inline_threshold": "conservative",
+    "loop_unrolling": false,
+    "vectorization": false
+  },
+
+  "safety": {
+    "mode": "strict",
+    "bounds_checking": "always",
+    "integer_overflow_checks": "always",
+    "null_pointer_checks": "always",
+    "stack_protector": "strong",
+    "fortify_source": 2,
+    "address_sanitizer": true,
+    "undefined_behavior_sanitizer": true
+  },
+
+  "compilation": {
+    "debug_symbols": true,
+    "warnings_as_errors": true,
+    "extra_warnings": true,
+    "pedantic": true,
+    "static_analysis": true
+  },
+
+  "parallelism": {
+    "enabled": false,
+    "threshold_complexity": 999,
+    "max_workers": 1,
+    "thread_safety_checks": "always"
+  },
+
+  "target_languages": {
+    "allowed": ["rust", "go", "cpp"],
+    "preferred": "rust",
+    "blocked": ["zig", "julia"],
+    "reason": "Rust preferred for memory safety guarantees"
+  },
+
+  "compiler_flags": {
+    "go": "-race -gcflags=all=-l -ldflags=-w",
+    "cpp": "-Wall -Wextra -Wpedantic -Werror -g -fsanitize=address,undefined -fstack-protector-strong -D_FORTIFY_SOURCE=2",
+    "rust": "-C debuginfo=2 -C opt-level=1 -Z sanitizer=address -Z sanitizer=leak -D warnings",
+    "zig": "-Doptimize=Debug -Dsafety=on",
+    "julia": "--check-bounds=yes --warn-overwrite=yes"
+  },
+
+  "runtime": {
+    "validation_mode": "exhaustive",
+    "parity_tolerance": 0.0001,
+    "statistical_validation": true,
+    "fuzzing_enabled": true,
+    "property_testing": true
+  },
+
+  "build": {
+    "incremental": false,
+    "clean_build": true,
+    "cache_enabled": false,
+    "reproducible": true
+  },
+
+  "reporting": {
+    "verbose": true,
+    "warnings_shown": "all",
+    "performance_metrics": true,
+    "safety_report": true
+  }
+}

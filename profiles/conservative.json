@@ -1,0 +1,77 @@
+{
+  "name": "conservative",
+  "description": "Safety-first approach with moderate optimization",
+  "version": "1.0.0",
+
+  "optimization": {
+    "level": "O2",
+    "simd_enabled": false,
+    "lto_enabled": false,
+    "inline_threshold": "moderate",
+    "loop_unrolling": true,
+    "vectorization": false
+  },
+
+  "safety": {
+    "mode": "balanced",
+    "bounds_checking": "debug_only",
+    "integer_overflow_checks": "debug_only",
+    "null_pointer_checks": "always",
+    "stack_protector": "yes",
+    "fortify_source": 1,
+    "address_sanitizer": false,
+    "undefined_behavior_sanitizer": false
+  },
+
+  "compilation": {
+    "debug_symbols": true,
+    "warnings_as_errors": false,
+    "extra_warnings": true,
+    "pedantic": false,
+    "static_analysis": false
+  },
+
+  "parallelism": {
+    "enabled": true,
+    "threshold_complexity": 15,
+    "max_workers": 2,
+    "thread_safety_checks": "debug_only"
+  },
+
+  "target_languages": {
+    "allowed": ["rust", "go", "cpp", "zig"],
+    "preferred": "rust",
+    "blocked": [],
+    "reason": "Balanced safety and performance"
+  },
+
+  "compiler_flags": {
+    "go": "-gcflags=-N",
+    "cpp": "-Wall -Wextra -g -fstack-protector",
+    "rust": "-C debuginfo=1 -C opt-level=2",
+    "zig": "-Doptimize=ReleaseSafe",
+    "julia": "--check-bounds=auto"
+  },
+
+  "runtime": {
+    "validation_mode": "standard",
+    "parity_tolerance": 0.001,
+    "statistical_validation": true,
+    "fuzzing_enabled": false,
+    "property_testing": false
+  },
+
+  "build": {
+    "incremental": true,
+    "clean_build": false,
+    "cache_enabled": true,
+    "reproducible": false
+  },
+
+  "reporting": {
+    "verbose": false,
+    "warnings_shown": "important",
+    "performance_metrics": true,
+    "safety_report": false
+  }
+}
