@@ -1,0 +1,102 @@
+name: Nightly Benchmarks
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Run at 2 AM UTC daily
+  workflow_dispatch:     # Allow manual triggers
+
+jobs:
+  run-benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake golang-1.21 rustc g++ clang python3 ruby nodejs php
+          echo "/usr/lib/go-1.21/bin" >> $GITHUB_PATH
+
+      - name: Build NAAb
+        run: bash build.sh
+
+      - name: Run Full Benchmark Suite
+        run: bash scripts/benchmark-all.sh
+
+      - name: Store Benchmark Results
+        run: |
+          mkdir -p benchmark-history
+          DATE=$(date +%Y-%m-%d)
+          cp tests/performance/*.json benchmark-history/${DATE}.json
+
+      - name: Check for Performance Regressions
+        run: ./naab/build/naab-lang tests/performance/regression-suite.naab
+        continue-on-error: true
+
+      - name: Generate Performance Report
+        if: always()
+        run: |
+          ./naab/build/naab-lang modules/report_generator.naab \
+            --input benchmark-history/ \
+            --output benchmark-report.html \
+            --format html
+
+      - name: Upload Benchmark Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-report-${{ github.run_number }}
+          path: |
+            benchmark-report.html
+            benchmark-history/*.json
+
+      - name: Comment on Regressions
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '⚠️ Performance Regression Detected',
+              body: 'Nightly benchmark run detected performance regressions.\n\nSee artifacts for detailed report.',
+              labels: ['performance', 'regression']
+            })
+
+  compare-with-baseline:
+    runs-on: ubuntu-latest
+    needs: run-benchmarks
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Download Current Benchmarks
+        uses: actions/download-artifact@v3
+        with:
+          name: benchmark-report-${{ github.run_number }}
+          path: current/
+
+      - name: Download Baseline Benchmarks
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: benchmark.yml
+          name: benchmark-report-*
+          path: baseline/
+          search_artifacts: true
+        continue-on-error: true
+
+      - name: Generate Comparison Report
+        run: |
+          # Compare current vs baseline
+          # Generate trend charts
+          echo "Comparison report would be generated here"
+
+      - name: Upload Comparison
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-comparison
+          path: comparison-report.html

@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        compiler: [gcc, clang]
+        exclude:
+          - os: windows-latest
+            compiler: clang
+          - os: macos-latest
+            compiler: gcc
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake golang-1.21 rustc g++ clang python3 ruby nodejs php
+          echo "/usr/lib/go-1.21/bin" >> $GITHUB_PATH
+
+      - name: Install Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake go rust node ruby php
+
+      - name: Install Dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install cmake golang rust nodejs ruby php
+
+      - name: Build NAAb
+        run: bash build.sh
+
+      - name: Run Unit Tests
+        run: |
+          cd tests
+          bash run-all-tests.sh unit
+
+      - name: Run Integration Tests
+        run: |
+          cd tests
+          bash run-all-tests.sh integration
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.compiler }}
+          path: tests/results/
+
+  benchmark:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake golang-1.21 rustc g++ python3
+          echo "/usr/lib/go-1.21/bin" >> $GITHUB_PATH
+
+      - name: Build NAAb
+        run: bash build.sh
+
+      - name: Run Performance Benchmarks
+        run: |
+          cd tests/performance
+          bash ../../naab/build/naab-lang bench-analyzer.naab
+          bash ../../naab/build/naab-lang bench-synthesizer.naab
+          bash ../../naab/build/naab-lang bench-compilation.naab
+
+      - name: Upload Benchmark Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: tests/performance/*.json
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Shellcheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          severity: warning
+
+      - name: Check File Permissions
+        run: |
+          # Ensure scripts are executable
+          test -x build.sh || exit 1
+          test -x install.sh || exit 1
