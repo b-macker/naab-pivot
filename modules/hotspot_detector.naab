@@ -1,0 +1,241 @@
+// modules/hotspot_detector.naab - Profile-guided optimization
+// Detects performance bottlenecks using profiling data
+
+use io
+use json
+use file
+use string
+use array
+
+export fn detect_hotspots(profile_data_path) {
+    io.write("  [HOTSPOT] Analyzing profile data: ", profile_data_path, "\n")
+
+    if file.exists(profile_data_path) == false {
+        return {
+            "error": "Profile data not found",
+            "path": profile_data_path
+        }
+    }
+
+    // Parse profiling data (supports multiple formats)
+    let profile = parse_profile_data(profile_data_path)
+
+    if profile["error"] != null {
+        return profile
+    }
+
+    // Identify hotspots (functions consuming >5% total runtime)
+    let hotspots = []
+    let total_time = profile["total_time"] || 1.0
+
+    io.write("  Total execution time: ", total_time, "ms\n")
+
+    for func_data in profile["functions"] {
+        let func_time = func_data["cumulative_time"] || 0
+        let percentage = (func_time / total_time) * 100.0
+
+        if percentage > 5.0 {
+            let target = recommend_target_language(func_data)
+
+            hotspots = array.push(hotspots, {
+                "function": func_data["name"],
+                "file": func_data["file"] || "unknown",
+                "line": func_data["line"] || 0,
+                "time_ms": func_time,
+                "percentage": percentage,
+                "call_count": func_data["calls"] || 0,
+                "time_per_call": func_time / (1.0 * (func_data["calls"] || 1)),
+                "recommended_target": target,
+                "reason": target["reason"]
+            })
+        }
+    }
+
+    // Sort by time descending
+    hotspots = sort_by_time(hotspots)
+
+    io.write("  Found ", array.length(hotspots), " hotspots (>5% runtime)\n\n")
+
+    // Calculate optimization potential
+    let optimization_potential = estimate_total_speedup(hotspots)
+
+    return {
+        "total_functions": array.length(profile["functions"]),
+        "hotspots": hotspots,
+        "optimization_potential": optimization_potential,
+        "total_hotspot_time": sum_hotspot_time(hotspots),
+        "hotspot_percentage": (sum_hotspot_time(hotspots) / total_time) * 100.0
+    }
+}
+
+fn parse_profile_data(path) {
+    // Support multiple profile formats
+    if string.index_of(path, ".prof") != -1 {
+        return parse_python_cprofile(path)
+    } else if string.index_of(path, ".json") != -1 {
+        return parse_json_profile(path)
+    } else {
+        return {"error": "Unsupported profile format: " + path}
+    }
+}
+
+fn parse_python_cprofile(path) {
+    // Parse Python cProfile output
+    let output = <<python[path]
+import pstats
+import json
+import sys
+
+try:
+    stats = pstats.Stats(path)
+
+    functions = []
+    total_time = 0.0
+
+    for func, (cc, nc, tt, ct, callers) in stats.stats.items():
+        filename, line, func_name = func
+
+        functions.append({
+            "name": func_name,
+            "file": filename,
+            "line": line,
+            "calls": nc,
+            "cumulative_time": ct * 1000,  # Convert to ms
+            "total_time": tt * 1000
+        })
+
+        total_time = max(total_time, ct * 1000)
+
+    result = {
+        "total_time": total_time,
+        "functions": functions,
+        "format": "cprofile"
+    }
+
+    print(json.dumps(result))
+
+except Exception as e:
+    print(json.dumps({"error": str(e)}))
+    >>
+
+    return json.parse(output)
+}
+
+fn parse_json_profile(path) {
+    // Parse JSON profile format
+    try {
+        let profile_str = file.read(path)
+        return json.parse(profile_str)
+    } catch (e) {
+        return {"error": "Failed to parse JSON profile: " + e}
+    }
+}
+
+fn recommend_target_language(func_data) {
+    // Heuristics for language selection based on function characteristics
+    let name = func_data["name"] || ""
+    let time_per_call = func_data["time_per_call"] || 0
+
+    // Check function name for hints
+    if string.index_of(name, "hash") != -1 || string.index_of(name, "crypto") != -1 {
+        return {
+            "target": "RUST",
+            "reason": "Cryptographic operations - Rust for safety + SIMD"
+        }
+    }
+
+    if string.index_of(name, "math") != -1 || string.index_of(name, "calculate") != -1 {
+        return {
+            "target": "CPP",
+            "reason": "Math-heavy - C++ for numerical performance"
+        }
+    }
+
+    if string.index_of(name, "process") != -1 || string.index_of(name, "worker") != -1 {
+        return {
+            "target": "GO",
+            "reason": "Parallel processing - Go for concurrency"
+        }
+    }
+
+    // Check call count
+    let calls = func_data["calls"] || 0
+
+    if calls > 10000 {
+        return {
+            "target": "GO",
+            "reason": "High call count - Go for efficient execution"
+        }
+    }
+
+    // Check time per call
+    if time_per_call > 10.0 {
+        return {
+            "target": "CPP",
+            "reason": "Long execution time - C++ for maximum performance"
+        }
+    }
+
+    // Default recommendation
+    return {
+        "target": "RUST",
+        "reason": "General optimization - Rust for safety + speed"
+    }
+}
+
+fn sort_by_time(hotspots) {
+    // Bubble sort by time (descending)
+    let n = array.length(hotspots)
+
+    for i in 0..(n - 1) {
+        for j in 0..(n - i - 1) {
+            if hotspots[j]["time_ms"] < hotspots[j + 1]["time_ms"] {
+                let temp = hotspots[j]
+                hotspots[j] = hotspots[j + 1]
+                hotspots[j + 1] = temp
+            }
+        }
+    }
+
+    return hotspots
+}
+
+fn estimate_total_speedup(hotspots) {
+    // Estimate total speedup if all hotspots are optimized
+    // Conservative estimate: 3-10x depending on target language
+
+    let total_speedup = 0.0
+    let total_weight = 0.0
+
+    for hotspot in hotspots {
+        let weight = hotspot["percentage"]
+        let target = hotspot["recommended_target"]
+
+        let speedup = 3.0  // Conservative baseline
+
+        if target == "CPP" || target == "RUST" {
+            speedup = 5.0
+        } else if target == "GO" {
+            speedup = 3.5
+        }
+
+        total_speedup = total_speedup + (speedup * weight)
+        total_weight = total_weight + weight
+    }
+
+    if total_weight > 0 {
+        return total_speedup / total_weight
+    }
+
+    return 1.0
+}
+
+fn sum_hotspot_time(hotspots) {
+    let sum = 0.0
+
+    for hotspot in hotspots {
+        sum = sum + hotspot["time_ms"]
+    }
+
+    return sum
+}

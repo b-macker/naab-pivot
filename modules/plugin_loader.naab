@@ -1,0 +1,215 @@
+// modules/plugin_loader.naab - Dynamic plugin system
+// Loads and executes custom analyzers, synthesizers, and validators
+
+use io
+use file
+use json
+use string
+use array
+
+let loaded_plugins = {}
+
+export fn register_plugin(plugin_path, plugin_type) {
+    io.write("  [PLUGIN] Loading: ", plugin_path, " (", plugin_type, ")\n")
+
+    // Validate plugin file exists
+    if file.exists(plugin_path) == false {
+        throw "Plugin not found: " + plugin_path
+    }
+
+    // Load plugin metadata
+    let metadata_path = string.replace(plugin_path, ".naab", ".json")
+
+    if file.exists(metadata_path) == false {
+        throw "Plugin metadata not found: " + metadata_path
+    }
+
+    let metadata_str = file.read(metadata_path)
+    let metadata = json.parse(metadata_str)
+
+    // Validate plugin interface
+    validate_plugin_interface(metadata, plugin_type)
+
+    // Store plugin registration
+    let plugin_id = metadata["id"]
+    loaded_plugins[plugin_id] = {
+        "path": plugin_path,
+        "type": plugin_type,
+        "metadata": metadata,
+        "enabled": true
+    }
+
+    io.write("    ✓ Loaded plugin: ", plugin_id, " v", metadata["version"], "\n")
+
+    return plugin_id
+}
+
+export fn execute_plugin(plugin_id, input_data) {
+    if loaded_plugins[plugin_id] == null {
+        throw "Plugin not loaded: " + plugin_id
+    }
+
+    let plugin = loaded_plugins[plugin_id]
+
+    if plugin["enabled"] == false {
+        throw "Plugin is disabled: " + plugin_id
+    }
+
+    io.write("  [PLUGIN] Executing: ", plugin_id, "\n")
+
+    // Execute plugin in isolated environment
+    use env
+    let old_plugin_mode = env.get_var("PIVOT_PLUGIN_MODE") || "false"
+    env.set_var("PIVOT_PLUGIN_MODE", "true")
+    env.set_var("PIVOT_PLUGIN_ID", plugin_id)
+
+    let result = {}
+    let start_time = time.now()
+
+    try {
+        // Note: NAAb doesn't support dynamic module loading yet
+        // This is a placeholder for future implementation
+
+        // For now, execute as external script
+        let input_json = json.stringify(input_data)
+        let temp_input = "/tmp/plugin_input_" + plugin_id + ".json"
+        file.write(temp_input, input_json)
+
+        let output = <<bash[plugin["path"], temp_input]
+        ./naab/build/naab-lang "$1" "$2" 2>&1
+        >>
+
+        result = json.parse(output)
+        result["execution_time_ms"] = time.now() - start_time
+
+        io.write("    ✓ Plugin executed successfully (", result["execution_time_ms"], "ms)\n")
+
+    } catch (e) {
+        io.write("    ✗ Plugin execution failed: ", e, "\n")
+        result = {
+            "error": "" + e,
+            "plugin_id": plugin_id,
+            "execution_time_ms": time.now() - start_time
+        }
+    }
+
+    // Restore environment
+    env.set_var("PIVOT_PLUGIN_MODE", old_plugin_mode)
+
+    return result
+}
+
+export fn list_plugins(plugin_type) {
+    // List all loaded plugins of a specific type
+    let result = []
+
+    // Note: NAAb doesn't support dict iteration yet
+    // This is a simplified implementation
+
+    return result
+}
+
+export fn disable_plugin(plugin_id) {
+    if loaded_plugins[plugin_id] != null {
+        loaded_plugins[plugin_id]["enabled"] = false
+        io.write("  [PLUGIN] Disabled: ", plugin_id, "\n")
+        return true
+    }
+
+    return false
+}
+
+export fn enable_plugin(plugin_id) {
+    if loaded_plugins[plugin_id] != null {
+        loaded_plugins[plugin_id]["enabled"] = true
+        io.write("  [PLUGIN] Enabled: ", plugin_id, "\n")
+        return true
+    }
+
+    return false
+}
+
+fn validate_plugin_interface(metadata, plugin_type) {
+    // Ensure plugin has required fields
+    if metadata["id"] == null {
+        throw "Plugin missing 'id' field"
+    }
+
+    if metadata["version"] == null {
+        throw "Plugin missing 'version' field"
+    }
+
+    if metadata["entry_point"] == null {
+        throw "Plugin missing 'entry_point' field"
+    }
+
+    // Type-specific validation
+    if plugin_type == "analyzer" {
+        if metadata["supported_languages"] == null {
+            throw "Analyzer plugin missing 'supported_languages' field"
+        }
+    } else if plugin_type == "synthesizer" {
+        if metadata["target_language"] == null {
+            throw "Synthesizer plugin missing 'target_language' field"
+        }
+    } else if plugin_type == "validator" {
+        if metadata["validation_type"] == null {
+            throw "Validator plugin missing 'validation_type' field"
+        }
+    }
+
+    // Check for security concerns
+    if metadata["requires_network"] == true {
+        io.write("    ⚠ Warning: Plugin requires network access\n")
+    }
+
+    if metadata["requires_filesystem_write"] == true {
+        io.write("    ⚠ Warning: Plugin requires filesystem write access\n")
+    }
+}
+
+export fn discover_plugins(plugins_dir) {
+    // Auto-discover plugins in a directory
+    io.write("  [PLUGIN] Discovering plugins in: ", plugins_dir, "\n")
+
+    let analyzers = discover_plugin_type(plugins_dir + "/analyzers", "analyzer")
+    let synthesizers = discover_plugin_type(plugins_dir + "/synthesizers", "synthesizer")
+    let validators = discover_plugin_type(plugins_dir + "/validators", "validator")
+
+    return {
+        "analyzers": analyzers,
+        "synthesizers": synthesizers,
+        "validators": validators,
+        "total": array.length(analyzers) + array.length(synthesizers) + array.length(validators)
+    }
+}
+
+fn discover_plugin_type(dir, plugin_type) {
+    let plugins = []
+
+    if file.exists(dir) == false {
+        return plugins
+    }
+
+    // Find all .naab files
+    let files = <<bash[dir]
+    find "$dir" -name "*.naab" 2>/dev/null || echo ""
+    >>
+
+    let file_list = string.split(string.trim(files), "\n")
+
+    for f in file_list {
+        let trimmed = string.trim(f)
+
+        if string.length(trimmed) > 0 {
+            try {
+                let plugin_id = register_plugin(trimmed, plugin_type)
+                plugins = array.push(plugins, plugin_id)
+            } catch (e) {
+                io.write("    ⚠ Failed to load plugin: ", trimmed, " - ", e, "\n")
+            }
+        }
+    }
+
+    return plugins
+}

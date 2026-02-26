@@ -1,0 +1,215 @@
+// modules/dependency_analyzer.naab - Function dependency graph analysis
+// Maps dependencies between functions for optimization ordering
+
+use io
+use string
+use array
+use file
+
+export fn analyze_dependencies(source_files) {
+    // Analyze dependencies across multiple source files
+    io.write("  [DEPENDENCY] Analyzing dependencies...\n")
+
+    let graph = {
+        "nodes": [],
+        "edges": []
+    }
+
+    // Build nodes (functions)
+    for file_path in source_files {
+        let functions = extract_functions(file_path)
+
+        for func in functions {
+            graph["nodes"] = array.push(graph["nodes"], {
+                "id": func["name"],
+                "file": file_path,
+                "type": "function"
+            })
+        }
+    }
+
+    // Build edges (dependencies)
+    for file_path in source_files {
+        let dependencies = extract_function_calls(file_path)
+
+        for dep in dependencies {
+            graph["edges"] = array.push(graph["edges"], {
+                "from": dep["caller"],
+                "to": dep["callee"],
+                "type": "calls"
+            })
+        }
+    }
+
+    io.write("    Found ", array.length(graph["nodes"]), " functions\n")
+    io.write("    Found ", array.length(graph["edges"]), " dependencies\n")
+
+    return graph
+}
+
+export fn find_optimization_order(dependency_graph) {
+    // Determine optimal order for optimization based on dependencies
+    // Functions with no dependencies should be optimized first
+
+    let nodes = dependency_graph["nodes"]
+    let edges = dependency_graph["edges"]
+
+    // Calculate in-degree for each node
+    let in_degrees = {}
+    for node in nodes {
+        in_degrees[node["id"]] = 0
+    }
+
+    for edge in edges {
+        let to = edge["to"]
+        in_degrees[to] = (in_degrees[to] || 0) + 1
+    }
+
+    // Sort by in-degree (ascending)
+    let sorted_nodes = []
+
+    for node in nodes {
+        let id = node["id"]
+        let degree = in_degrees[id] || 0
+
+        sorted_nodes = array.push(sorted_nodes, {
+            "node": node,
+            "in_degree": degree
+        })
+    }
+
+    // Bubble sort by in-degree
+    let n = array.length(sorted_nodes)
+    for i in 0..(n - 1) {
+        for j in 0..(n - i - 1) {
+            if sorted_nodes[j]["in_degree"] > sorted_nodes[j + 1]["in_degree"] {
+                let temp = sorted_nodes[j]
+                sorted_nodes[j] = sorted_nodes[j + 1]
+                sorted_nodes[j + 1] = temp
+            }
+        }
+    }
+
+    // Extract just the nodes
+    let result = []
+    for item in sorted_nodes {
+        result = array.push(result, item["node"])
+    }
+
+    return result
+}
+
+export fn find_critical_path(dependency_graph) {
+    // Find the longest dependency chain (critical path)
+    let nodes = dependency_graph["nodes"]
+    let edges = dependency_graph["edges"]
+
+    // Build adjacency list
+    let adj = {}
+    for edge in edges {
+        let from = edge["from"]
+        let to = edge["to"]
+
+        if adj[from] == null {
+            adj[from] = []
+        }
+
+        adj[from] = array.push(adj[from], to)
+    }
+
+    // Find longest path from each node
+    let max_depth = 0
+    let critical_node = null
+
+    for node in nodes {
+        let depth = calculate_depth(node["id"], adj, {})
+
+        if depth > max_depth {
+            max_depth = depth
+            critical_node = node
+        }
+    }
+
+    return {
+        "length": max_depth,
+        "start_node": critical_node
+    }
+}
+
+fn extract_functions(file_path) {
+    // Extract function definitions from source file
+    if file.exists(file_path) == false {
+        return []
+    }
+
+    let source = file.read(file_path)
+    let functions = []
+
+    // Simple regex-based extraction
+    let lines = string.split(source, "\n")
+
+    for line in lines {
+        // Python: def function_name(
+        if string.index_of(line, "def ") != -1 {
+            let start = string.index_of(line, "def ") + 4
+            let rest = string.substring(line, start)
+            let paren = string.index_of(rest, "(")
+
+            if paren != -1 {
+                let name = string.trim(string.substring(rest, 0, paren))
+                functions = array.push(functions, {"name": name})
+            }
+        }
+
+        // JavaScript/NAAb: function function_name(
+        if string.index_of(line, "function ") != -1 || string.index_of(line, "fn ") != -1 {
+            // Similar extraction logic
+        }
+    }
+
+    return functions
+}
+
+fn extract_function_calls(file_path) {
+    // Extract function calls from source file
+    if file.exists(file_path) == false {
+        return []
+    }
+
+    let source = file.read(file_path)
+    let calls = []
+
+    // Simplified: just track that dependencies exist
+    // Full implementation would use AST parsing
+
+    return calls
+}
+
+fn calculate_depth(node_id, adj, visited) {
+    // Calculate maximum depth from this node
+    if visited[node_id] != null {
+        return visited[node_id]
+    }
+
+    let children = adj[node_id] || []
+
+    if array.length(children) == 0 {
+        visited[node_id] = 1
+        return 1
+    }
+
+    let max_child_depth = 0
+
+    for child in children {
+        let child_depth = calculate_depth(child, adj, visited)
+
+        if child_depth > max_child_depth {
+            max_child_depth = child_depth
+        }
+    }
+
+    let depth = 1 + max_child_depth
+    visited[node_id] = depth
+
+    return depth
+}

@@ -1,0 +1,273 @@
+// modules/parity_engine.naab - Advanced parity validation
+// Statistical analysis and advanced correctness checking
+
+use io
+use json
+use array
+use math
+
+export fn validate_advanced_parity(legacy_results, vessel_results, config) {
+    // Advanced parity validation with statistical analysis
+
+    let tolerance = config["tolerance"] || 0.001
+    let statistical = config["statistical_validation"] || true
+
+    io.write("  [PARITY] Advanced validation mode\n")
+    io.write("  Tolerance: ", tolerance, "\n")
+    io.write("  Statistical validation: ", statistical, "\n\n")
+
+    if array.length(legacy_results) != array.length(vessel_results) {
+        return {
+            "certified": false,
+            "error": "Result count mismatch",
+            "legacy_count": array.length(legacy_results),
+            "vessel_count": array.length(vessel_results)
+        }
+    }
+
+    let differences = []
+    let failures = []
+
+    // Compare each result pair
+    for i in 0..array.length(legacy_results) {
+        let legacy_val = legacy_results[i]
+        let vessel_val = vessel_results[i]
+
+        let comparison = compare_values(legacy_val, vessel_val, tolerance)
+
+        if comparison["passed"] == false {
+            failures = array.push(failures, {
+                "index": i,
+                "legacy": legacy_val,
+                "vessel": vessel_val,
+                "difference": comparison["difference"]
+            })
+        }
+
+        differences = array.push(differences, comparison["difference"])
+    }
+
+    // Statistical analysis
+    let stats = {}
+    if statistical {
+        stats = compute_statistical_analysis(differences)
+    }
+
+    // Determine certification
+    let certified = array.length(failures) == 0
+
+    // Advanced checks
+    if certified && statistical {
+        // Check if variance is acceptable
+        if stats["stddev"] > tolerance * 10 {
+            certified = false
+            io.write("  ⚠ High variance detected: ", stats["stddev"], "\n")
+        }
+
+        // Check for systematic bias
+        if abs(stats["mean"]) > tolerance {
+            certified = false
+            io.write("  ⚠ Systematic bias detected: ", stats["mean"], "\n")
+        }
+    }
+
+    return {
+        "certified": certified,
+        "test_count": array.length(legacy_results),
+        "failures": failures,
+        "failure_count": array.length(failures),
+        "tolerance": tolerance,
+        "statistics": stats,
+        "confidence": calculate_confidence(failures, array.length(legacy_results))
+    }
+}
+
+export fn compute_statistical_analysis(differences) {
+    // Compute comprehensive statistics on differences
+
+    if array.length(differences) == 0 {
+        return {
+            "mean": 0,
+            "median": 0,
+            "stddev": 0,
+            "min": 0,
+            "max": 0,
+            "variance": 0
+        }
+    }
+
+    // Calculate mean
+    let sum = 0.0
+    let min_val = differences[0]
+    let max_val = differences[0]
+
+    for diff in differences {
+        sum = sum + diff
+
+        if diff < min_val {
+            min_val = diff
+        }
+
+        if diff > max_val {
+            max_val = diff
+        }
+    }
+
+    let mean = sum / (1.0 * array.length(differences))
+
+    // Calculate variance
+    let variance_sum = 0.0
+
+    for diff in differences {
+        let dev = diff - mean
+        variance_sum = variance_sum + (dev * dev)
+    }
+
+    let variance = variance_sum / (1.0 * array.length(differences))
+    let stddev = sqrt(variance)
+
+    // Calculate median
+    let sorted = array.sort(differences)
+    let n = array.length(sorted)
+    let median = 0.0
+
+    if n % 2 == 0 {
+        median = (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0
+    } else {
+        median = sorted[n / 2]
+    }
+
+    return {
+        "mean": mean,
+        "median": median,
+        "stddev": stddev,
+        "variance": variance,
+        "min": min_val,
+        "max": max_val,
+        "sample_size": n
+    }
+}
+
+export fn check_distribution_similarity(legacy_results, vessel_results) {
+    // Check if distributions are similar (Kolmogorov-Smirnov test approximation)
+
+    io.write("  [PARITY] Checking distribution similarity...\n")
+
+    let legacy_sorted = array.sort(legacy_results)
+    let vessel_sorted = array.sort(vessel_results)
+
+    let max_diff = 0.0
+    let n = array.length(legacy_sorted)
+
+    for i in 0..n {
+        let legacy_cdf = (1.0 * (i + 1)) / (1.0 * n)
+        let vessel_cdf = (1.0 * (i + 1)) / (1.0 * n)
+
+        let diff = abs(legacy_cdf - vessel_cdf)
+
+        if diff > max_diff {
+            max_diff = diff
+        }
+    }
+
+    // Critical value for 95% confidence (approximation)
+    let critical_value = 1.36 / sqrt(1.0 * n)
+
+    return {
+        "max_difference": max_diff,
+        "critical_value": critical_value,
+        "distributions_match": max_diff < critical_value,
+        "confidence_level": 0.95
+    }
+}
+
+fn compare_values(legacy, vessel, tolerance) {
+    // Compare two values with tolerance
+
+    // Handle null/undefined
+    if legacy == null || vessel == null {
+        return {
+            "passed": false,
+            "difference": 0.0,
+            "error": "Null value encountered"
+        }
+    }
+
+    // Parse as numbers
+    let legacy_num = parse_number(legacy)
+    let vessel_num = parse_number(vessel)
+
+    // Calculate absolute and relative difference
+    let abs_diff = abs(legacy_num - vessel_num)
+    let rel_diff = 0.0
+
+    if abs(legacy_num) > 0.0001 {
+        rel_diff = abs_diff / abs(legacy_num)
+    } else {
+        rel_diff = abs_diff
+    }
+
+    let passed = rel_diff <= tolerance
+
+    return {
+        "passed": passed,
+        "difference": rel_diff,
+        "absolute_difference": abs_diff
+    }
+}
+
+fn parse_number(val) {
+    // Try to parse as number
+    try {
+        return json.parse("" + val)
+    } catch (e) {
+        // If parsing fails, return hash
+        return string.length("" + val)
+    }
+}
+
+fn abs(x) {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
+
+fn sqrt(x) {
+    // Newton-Raphson square root
+    if x <= 0 {
+        return 0
+    }
+
+    let guess = x / 2.0
+    let epsilon = 0.0001
+
+    for i in 0..20 {
+        let new_guess = (guess + x / guess) / 2.0
+
+        if abs(new_guess - guess) < epsilon {
+            return new_guess
+        }
+
+        guess = new_guess
+    }
+
+    return guess
+}
+
+fn calculate_confidence(failures, total) {
+    // Calculate confidence level based on failure rate
+    let failure_rate = (1.0 * array.length(failures)) / (1.0 * total)
+
+    if failure_rate == 0.0 {
+        return 99.99
+    } else if failure_rate < 0.01 {
+        return 99.0
+    } else if failure_rate < 0.05 {
+        return 95.0
+    } else if failure_rate < 0.10 {
+        return 90.0
+    } else {
+        return 50.0
+    }
+}

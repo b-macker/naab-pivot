@@ -1,0 +1,183 @@
+// modules/vessel_cache.naab - Incremental build caching system
+// Tracks source changes and avoids unnecessary recompilation
+
+use file
+use json
+use string
+use io
+use time
+
+let cache_db = {}
+let cache_path = ".cache/vessel-cache.json"
+
+export fn init_cache() {
+    // Load cache database from disk
+    if file.exists(cache_path) {
+        try {
+            let cache_str = file.read(cache_path)
+            cache_db = json.parse(cache_str)
+            io.write("  [CACHE] Loaded cache with ", array.length(cache_db["entries"] || []), " entries\n")
+        } catch (e) {
+            io.write("  [CACHE] Failed to load cache: ", e, ", creating new cache\n")
+            cache_db = {"entries": [], "version": "1.0"}
+        }
+    } else {
+        cache_db = {"entries": [], "version": "1.0"}
+        io.write("  [CACHE] Initialized new cache\n")
+    }
+}
+
+export fn should_rebuild(src_path, bin_path, new_source_hash) {
+    // Check if rebuild is needed based on cache
+
+    // Always rebuild if binary doesn't exist
+    if file.exists(bin_path) == false {
+        return true
+    }
+
+    // Check cache for this source file
+    let cache_entry = find_cache_entry(src_path)
+
+    if cache_entry == null {
+        // No cache entry, need to rebuild
+        return true
+    }
+
+    // Check if source hash matches
+    if cache_entry["source_hash"] != new_source_hash {
+        return true
+    }
+
+    // Check if binary file still exists
+    if file.exists(bin_path) == false {
+        return true
+    }
+
+    // All checks passed, can use cached binary
+    return false
+}
+
+export fn update_cache(src_path, bin_path, source_hash, profile) {
+    // Update cache entry for this source file
+
+    // Remove old entry if exists
+    cache_db["entries"] = remove_cache_entry(cache_db["entries"] || [], src_path)
+
+    // Add new entry
+    let entry = {
+        "src_path": src_path,
+        "bin_path": bin_path,
+        "source_hash": source_hash,
+        "profile": profile,
+        "timestamp": time.now()
+    }
+
+    cache_db["entries"] = array.push(cache_db["entries"] || [], entry)
+
+    // Save to disk
+    save_cache()
+}
+
+export fn invalidate_cache(src_path) {
+    // Remove cache entry for a specific file
+    cache_db["entries"] = remove_cache_entry(cache_db["entries"] || [], src_path)
+    save_cache()
+
+    io.write("  [CACHE] Invalidated cache for: ", src_path, "\n")
+}
+
+export fn clear_cache() {
+    // Clear entire cache
+    cache_db = {"entries": [], "version": "1.0"}
+    save_cache()
+
+    io.write("  [CACHE] Cleared all cache entries\n")
+}
+
+export fn hash_source(source_code) {
+    // Simple hash function (sum of character codes)
+    // Note: Not cryptographically secure, but sufficient for cache invalidation
+
+    let hash = 0
+    let len = string.length(source_code)
+
+    for i in 0..len {
+        let char = string.char_at(source_code, i)
+        hash = (hash * 31 + string.code_at(char)) % 2147483647
+    }
+
+    return hash
+}
+
+export fn get_cache_stats() {
+    // Get cache statistics
+    let total_entries = array.length(cache_db["entries"] || [])
+    let cache_size_kb = estimate_cache_size()
+
+    return {
+        "total_entries": total_entries,
+        "cache_size_kb": cache_size_kb,
+        "cache_path": cache_path,
+        "version": cache_db["version"] || "unknown"
+    }
+}
+
+fn find_cache_entry(src_path) {
+    let entries = cache_db["entries"] || []
+
+    for entry in entries {
+        if entry["src_path"] == src_path {
+            return entry
+        }
+    }
+
+    return null
+}
+
+fn remove_cache_entry(entries, src_path) {
+    let result = []
+
+    for entry in entries {
+        if entry["src_path"] != src_path {
+            result = array.push(result, entry)
+        }
+    }
+
+    return result
+}
+
+fn save_cache() {
+    // Ensure cache directory exists
+    <<bash mkdir -p .cache 2>/dev/null || true >>
+
+    // Save cache to disk
+    try {
+        file.write(cache_path, json.stringify(cache_db, true))
+    } catch (e) {
+        io.write("  ⚠ Failed to save cache: ", e, "\n")
+    }
+}
+
+fn estimate_cache_size() {
+    if file.exists(cache_path) == false {
+        return 0
+    }
+
+    // Estimate size from number of entries (rough approximation)
+    let entries = array.length(cache_db["entries"] || [])
+    return entries * 2  // Assume ~2KB per entry
+}
+
+// Helper function to get character code
+fn string.code_at(char) {
+    // Simple character to code mapping
+    // This is a placeholder - ideally NAAb would have a built-in
+
+    if char == "a" { return 97 }
+    if char == "b" { return 98 }
+    if char == "c" { return 99 }
+    // ... (simplified for now)
+
+    // Default fallback
+    return string.length(char) * 100
+}

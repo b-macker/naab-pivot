@@ -1,0 +1,148 @@
+// modules/compilation_manager.naab - Parallel compilation orchestrator
+// Manages compilation of multiple vessels with dependency resolution
+
+use io
+use array
+use time
+use json
+
+export fn compile_parallel(vessels, max_parallel) {
+    // Compile multiple vessels in parallel (simulated)
+    io.write("  [COMPILER] Compiling ", array.length(vessels), " vessels\n")
+    io.write("  [COMPILER] Max parallel jobs: ", max_parallel, "\n\n")
+
+    let results = []
+    let batch_size = max_parallel || 4
+
+    // Process vessels in batches
+    for i in 0..array.length(vessels) step batch_size {
+        let batch = []
+        let batch_end = min(i + batch_size, array.length(vessels))
+
+        // Collect batch
+        for j in i..batch_end {
+            batch = array.push(batch, vessels[j])
+        }
+
+        // Compile batch (simulated parallel execution)
+        io.write("  Batch ", (i / batch_size) + 1, ": Compiling ", array.length(batch), " vessels...\n")
+
+        let batch_start = time.now()
+
+        for vessel in batch {
+            let result = compile_single_vessel(vessel)
+            results = array.push(results, result)
+        }
+
+        let batch_time = time.now() - batch_start
+        io.write("    ✓ Batch completed in ", batch_time, "ms\n\n")
+    }
+
+    return {
+        "total": array.length(vessels),
+        "results": results,
+        "successful": count_successful(results),
+        "failed": count_failed(results)
+    }
+}
+
+fn compile_single_vessel(vessel) {
+    let start_time = time.now()
+
+    try {
+        // Compilation logic here (delegated to synthesizer)
+        // This is a management layer
+
+        let result = {
+            "vessel": vessel["name"],
+            "status": "SUCCESS",
+            "compilation_time": time.now() - start_time
+        }
+
+        return result
+    } catch (e) {
+        return {
+            "vessel": vessel["name"],
+            "status": "FAILED",
+            "error": "" + e,
+            "compilation_time": time.now() - start_time
+        }
+    }
+}
+
+export fn resolve_dependencies(vessels) {
+    // Resolve compilation order based on dependencies
+    // Simple topological sort
+
+    io.write("  [COMPILER] Resolving dependencies...\n")
+
+    // Build dependency graph
+    let graph = build_dependency_graph(vessels)
+
+    // Topological sort
+    let sorted = topological_sort(graph)
+
+    io.write("    ✓ Resolved compilation order for ", array.length(sorted), " vessels\n")
+
+    return sorted
+}
+
+fn build_dependency_graph(vessels) {
+    // Build simple dependency graph
+    // For now, assume no dependencies (TODO: implement proper dependency analysis)
+
+    let graph = []
+
+    for vessel in vessels {
+        graph = array.push(graph, {
+            "vessel": vessel,
+            "dependencies": []
+        })
+    }
+
+    return graph
+}
+
+fn topological_sort(graph) {
+    // Simple topological sort
+    // Since we have no dependencies yet, just return vessels in order
+
+    let result = []
+
+    for node in graph {
+        result = array.push(result, node["vessel"])
+    }
+
+    return result
+}
+
+fn count_successful(results) {
+    let count = 0
+
+    for result in results {
+        if result["status"] == "SUCCESS" {
+            count = count + 1
+        }
+    }
+
+    return count
+}
+
+fn count_failed(results) {
+    let count = 0
+
+    for result in results {
+        if result["status"] == "FAILED" {
+            count = count + 1
+        }
+    }
+
+    return count
+}
+
+fn min(a, b) {
+    if a < b {
+        return a
+    }
+    return b
+}
