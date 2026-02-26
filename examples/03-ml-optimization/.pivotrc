@@ -1,0 +1,45 @@
+{
+  "project_name": "ml-inference-optimization",
+  "profile": "experimental",
+  "target_languages": ["cpp"],
+  "preferred_target": "cpp",
+  "validate": true,
+  "benchmark_iterations": 50,
+  "parity_tolerance": 0.0001,
+
+  "optimization": {
+    "simd_enabled": true,
+    "simd_width": "avx512",
+    "loop_unrolling": true,
+    "unroll_count": 16,
+    "vectorization": true,
+    "auto_vectorization": true,
+    "fast_math": true,
+    "lto_enabled": true,
+    "pgo_enabled": true,
+    "inline_asm": true
+  },
+
+  "cpp_specific": {
+    "std": "c++17",
+    "openmp": true,
+    "openmp_threads": 4,
+    "vectorize": true,
+    "inline_threshold": 1000,
+    "optimize_for": "speed"
+  },
+
+  "validation": {
+    "numerical_tolerance": 0.0001,
+    "relative_error_max": 0.00001,
+    "statistical_validation": true,
+    "fp_precision": "strict"
+  },
+
+  "hardware_optimization": {
+    "target_cpu": "native",
+    "cache_optimize": true,
+    "prefetch_enabled": true,
+    "alignment": 32
+  }
+}
