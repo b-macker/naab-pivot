@@ -1,0 +1,173 @@
+name: 'NAAb Pivot'
+description: 'Polyglot code evolution - optimize slow code to compiled languages with mathematical parity proof'
+author: 'NAAb Pivot Team'
+
+branding:
+  icon: 'zap'
+  color: 'orange'
+
+inputs:
+  file:
+    description: 'File to optimize'
+    required: true
+
+  profile:
+    description: 'Optimization profile: ultra-safe | conservative | balanced | aggressive | experimental | minimal | embedded | wasm'
+    required: false
+    default: 'balanced'
+
+  target:
+    description: 'Target language: go | cpp | rust | ruby | js | php | zig | julia (auto-detect if not specified)'
+    required: false
+    default: ''
+
+  validate:
+    description: 'Run parity validation'
+    required: false
+    default: 'true'
+
+  test-count:
+    description: 'Number of validation test cases'
+    required: false
+    default: '100'
+
+  tolerance:
+    description: 'Parity validation tolerance (0.001 = 0.1%)'
+    required: false
+    default: '0.001'
+
+  format:
+    description: 'Report format: json | html | csv | sarif | markdown'
+    required: false
+    default: 'json'
+
+  output:
+    description: 'Output directory for vessels'
+    required: false
+    default: './vessels'
+
+  enable-simd:
+    description: 'Enable SIMD optimizations'
+    required: false
+    default: 'false'
+
+  enable-lto:
+    description: 'Enable link-time optimization'
+    required: false
+    default: 'false'
+
+  governance-override:
+    description: 'Override governance checks (use with caution)'
+    required: false
+    default: 'false'
+
+outputs:
+  speedup:
+    description: 'Performance speedup factor'
+    value: ${{ steps.evolve.outputs.speedup }}
+
+  certified:
+    description: 'Parity validation passed (true/false)'
+    value: ${{ steps.evolve.outputs.certified }}
+
+  vessels-path:
+    description: 'Path to generated vessels'
+    value: ${{ steps.evolve.outputs.vessels_path }}
+
+  report-path:
+    description: 'Path to evolution report'
+    value: ${{ steps.evolve.outputs.report_path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup NAAb Pivot
+      shell: bash
+      run: |
+        echo "::group::Building NAAb Pivot"
+        cd "${{ github.action_path }}"
+
+        # Initialize submodules if needed
+        if [ ! -f "naab/CMakeLists.txt" ]; then
+          git submodule update --init --recursive
+        fi
+
+        # Build NAAb
+        bash build.sh
+
+        echo "::endgroup::"
+
+    - name: Run Pivot Evolution
+      id: evolve
+      shell: bash
+      run: |
+        echo "::group::Running NAAb Pivot Evolution"
+
+        NAAB="${{ github.action_path }}/naab/build/naab-lang"
+        PIVOT="${{ github.action_path }}/pivot.naab"
+
+        # Build command
+        CMD="$NAAB $PIVOT evolve ${{ inputs.file }}"
+        CMD="$CMD --profile ${{ inputs.profile }}"
+        CMD="$CMD --output ${{ inputs.output }}"
+        CMD="$CMD --format ${{ inputs.format }}"
+
+        # Optional parameters
+        if [ -n "${{ inputs.target }}" ]; then
+          CMD="$CMD --target ${{ inputs.target }}"
+        fi
+
+        if [ "${{ inputs.validate }}" == "true" ]; then
+          CMD="$CMD --test-count ${{ inputs.test-count }}"
+          CMD="$CMD --tolerance ${{ inputs.tolerance }}"
+        fi
+
+        if [ "${{ inputs.enable-simd }}" == "true" ]; then
+          CMD="$CMD --enable-simd"
+        fi
+
+        if [ "${{ inputs.enable-lto }}" == "true" ]; then
+          CMD="$CMD --enable-lto"
+        fi
+
+        if [ "${{ inputs.governance-override }}" == "true" ]; then
+          CMD="$CMD --governance-override"
+        fi
+
+        # Run evolution
+        echo "Command: $CMD"
+        $CMD > evolution-output.txt 2>&1 || true
+
+        # Extract outputs from evolution report
+        if [ -f "${{ inputs.output }}/evolution-report.json" ]; then
+          SPEEDUP=$(jq -r '.performance.speedup // "0"' "${{ inputs.output }}/evolution-report.json")
+          CERTIFIED=$(jq -r '.certified // "false"' "${{ inputs.output }}/evolution-report.json")
+
+          echo "speedup=$SPEEDUP" >> $GITHUB_OUTPUT
+          echo "certified=$CERTIFIED" >> $GITHUB_OUTPUT
+          echo "vessels_path=${{ inputs.output }}" >> $GITHUB_OUTPUT
+          echo "report_path=${{ inputs.output }}/evolution-report.json" >> $GITHUB_OUTPUT
+
+          echo "✅ Evolution complete!"
+          echo "Speedup: ${SPEEDUP}x"
+          echo "Parity Certified: $CERTIFIED"
+        else
+          echo "speedup=0" >> $GITHUB_OUTPUT
+          echo "certified=false" >> $GITHUB_OUTPUT
+          echo "vessels_path=${{ inputs.output }}" >> $GITHUB_OUTPUT
+          echo "report_path=not-found" >> $GITHUB_OUTPUT
+
+          echo "⚠️  Evolution report not found"
+          cat evolution-output.txt
+        fi
+
+        echo "::endgroup::"
+
+    - name: Upload Vessels
+      uses: actions/upload-artifact@v3
+      with:
+        name: naab-pivot-vessels
+        path: ${{ inputs.output }}/
+        retention-days: 7
+      if: always()
+
