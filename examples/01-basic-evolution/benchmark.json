@@ -1,0 +1,69 @@
+{
+  "benchmark_name": "basic-evolution-python-to-go",
+  "date": "2026-02-26",
+  "profile": "balanced",
+  "target_language": "go",
+
+  "legacy": {
+    "language": "python",
+    "file": "slow.py",
+    "function": "heavy_computation",
+    "input": 10000000,
+    "iterations": 10,
+    "mean_ms": 2843.12,
+    "min_ms": 2801.45,
+    "max_ms": 2892.67,
+    "stddev_ms": 28.34,
+    "memory_mb": 45.2
+  },
+
+  "vessel": {
+    "language": "go",
+    "file": "heavy_computation_GO.go",
+    "binary": "heavy_computation_vessel",
+    "input": 10000000,
+    "iterations": 10,
+    "mean_ms": 812.45,
+    "min_ms": 798.23,
+    "max_ms": 834.12,
+    "stddev_ms": 11.67,
+    "memory_mb": 12.1,
+    "binary_size_mb": 1.8
+  },
+
+  "performance": {
+    "speedup": 3.50,
+    "memory_reduction": 3.74,
+    "time_saved_ms": 2030.67,
+    "time_saved_percent": 71.42
+  },
+
+  "parity": {
+    "certified": true,
+    "test_cases": 100,
+    "failures": 0,
+    "max_deviation": 0.0000012,
+    "relative_error": 0.00001,
+    "confidence": 99.99,
+    "statistical_validation": {
+      "mean_difference": 0.0000008,
+      "stddev_difference": 0.0000003,
+      "ks_test_passed": true
+    }
+  },
+
+  "compilation": {
+    "time_ms": 1245.67,
+    "compiler": "go version go1.21.0 linux/amd64",
+    "flags": "-O2 -march=native",
+    "success": true
+  },
+
+  "system_info": {
+    "os": "Linux 4.19.113",
+    "cpu": "ARM Cortex-A53",
+    "cores": 4,
+    "ram_gb": 4,
+    "platform": "Android/Termux"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "project_name": "basic-evolution-example",
+  "profile": "balanced",
+  "output": "./",
+  "validate": true,
+  "benchmark_iterations": 10,
+  "target_languages": ["go", "cpp", "rust"],
+  "preferred_target": "go",
+  "parity_tolerance": 0.001,
+  "statistical_validation": true
+}
