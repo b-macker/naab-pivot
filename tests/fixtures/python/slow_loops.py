@@ -1,22 +1,28 @@
-# Test fixture: Python file with loops (for analyzer testing)
+# Test fixture: Python code with loops for optimization
+import time
 
 def heavy_computation(n):
-    """Compute-intensive function with nested loops"""
+    """Compute-intensive function with loops"""
     result = 0.0
     for i in range(n):
-        for j in range(100):
-            result += (i * j) ** 0.5
+        result += (i ** 2) ** 0.5
     return result
 
-def simple_function(x):
-    """Simple function without loops"""
-    return x * 2 + 1
+def nested_loops(n):
+    """Nested loop test"""
+    total = 0
+    for i in range(n):
+        for j in range(n):
+            total += i * j
+    return total
 
-def crypto_hash(data):
-    """Cryptographic hashing (should recommend Rust)"""
-    import hashlib
-    return hashlib.sha256(data.encode()).hexdigest()
+def factorial(n):
+    """Recursive function"""
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
 
 if __name__ == "__main__":
-    result = heavy_computation(1000)
-    print(f"Result: {result}")
+    print(heavy_computation(1000))
+    print(nested_loops(100))
+    print(factorial(10))
