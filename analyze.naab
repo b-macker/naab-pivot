@@ -1,0 +1,442 @@
+// analyze.naab - Multi-language code analyzer for optimization targets
+// Supports: Python, Ruby, JavaScript, NAAb, PHP, Java, Go, C#
+
+use io
+use json
+use string
+use file
+
+export fn analyze_file(file_path) {
+    io.write("  [ANALYZER] Scanning: ", file_path, "\n")
+
+    if file.exists(file_path) == false {
+        return {"status": "error", "error": "File not found"}
+    }
+
+    let source = file.read(file_path)
+    let ext = detect_extension(file_path)
+
+    if ext == "py" {
+        return analyze_python(source, file_path)
+    } else if ext == "rb" {
+        return analyze_ruby(source, file_path)
+    } else if ext == "js" {
+        return analyze_javascript(source, file_path)
+    } else if ext == "naab" {
+        return analyze_naab(source, file_path)
+    } else if ext == "php" {
+        return analyze_php(source, file_path)
+    } else if ext == "java" {
+        return analyze_java(source, file_path)
+    } else if ext == "go" {
+        return analyze_go(source, file_path)
+    } else if ext == "cs" {
+        return analyze_csharp(source, file_path)
+    } else {
+        return {"status": "error", "error": "UNSUPPORTED_LANGUAGE", "ext": ext}
+    }
+}
+
+fn detect_extension(file_path) {
+    if string.index_of(file_path, ".py") != -1 { return "py" }
+    if string.index_of(file_path, ".rb") != -1 { return "rb" }
+    if string.index_of(file_path, ".js") != -1 { return "js" }
+    if string.index_of(file_path, ".naab") != -1 { return "naab" }
+    if string.index_of(file_path, ".php") != -1 { return "php" }
+    if string.index_of(file_path, ".java") != -1 { return "java" }
+    if string.index_of(file_path, ".go") != -1 { return "go" }
+    if string.index_of(file_path, ".cs") != -1 { return "cs" }
+    return "unknown"
+}
+
+fn analyze_python(source, path) {
+    io.write("  [ANALYZER] Language: Python\n")
+
+    // Use Python AST to extract functions with detailed metrics
+    let analysis = <<python[source, path]
+import ast
+import json
+import sys
+
+class FunctionAnalyzer(ast.NodeVisitor):
+    def __init__(self):
+        self.functions = []
+
+    def visit_FunctionDef(self, node):
+        # Calculate complexity metrics
+        complexity = 0
+        loop_count = 0
+        math_ops = 0
+        crypto_ops = 0
+        io_ops = 0
+
+        for child in ast.walk(node):
+            # Count loops
+            if isinstance(child, (ast.For, ast.While)):
+                complexity += 2
+                loop_count += 1
+
+            # Count branches
+            if isinstance(child, ast.If):
+                complexity += 1
+
+            # Count math operations
+            if isinstance(child, (ast.BinOp, ast.UnaryOp)):
+                math_ops += 1
+
+            # Detect I/O operations
+            if isinstance(child, ast.Call):
+                if hasattr(child.func, 'id'):
+                    if child.func.id in ['open', 'read', 'write', 'print']:
+                        io_ops += 1
+
+        # Get source code snippet
+        try:
+            code_snippet = ast.unparse(node)[:200]  # First 200 chars
+        except:
+            code_snippet = ""
+
+        # Determine recommended target language
+        target, reason = recommend_target(complexity, loop_count, math_ops, crypto_ops, io_ops, code_snippet)
+
+        self.functions.append({
+            "name": node.name,
+            "line_start": node.lineno,
+            "line_count": len(ast.unparse(node).split('\n')),
+            "complexity": max(1, complexity),
+            "has_loops": loop_count > 0,
+            "loop_count": loop_count,
+            "math_operations": math_ops,
+            "io_operations": io_ops,
+            "target": target,
+            "reason": reason,
+            "code_snippet": code_snippet
+        })
+        self.generic_visit(node)
+
+def recommend_target(complexity, loop_count, math_ops, crypto_ops, io_ops, code):
+    """Heuristic for target language selection"""
+
+    # Check for crypto/hash operations → Rust
+    if 'hashlib' in code or 'crypto' in code or 'hmac' in code:
+        return ("RUST", "Cryptographic operations detected - Rust for safety + SIMD")
+
+    # Check for heavy math → C++
+    if math_ops > 10 or 'numpy' in code or 'math.' in code:
+        return ("CPP", "Math-heavy operations - C++ for numerical performance")
+
+    # Check for I/O bound → Go
+    if io_ops > 3:
+        return ("GO", "I/O-bound operations - Go for concurrency")
+
+    # Check for high complexity or many loops → Go
+    if complexity > 10 or loop_count > 3:
+        return ("GO", "High complexity with loops - Go for parallel processing")
+
+    # Medium complexity → C++
+    if complexity > 5:
+        return ("CPP", "Medium complexity - C++ for performance")
+
+    # Low complexity but worth optimizing → Rust
+    return ("RUST", "General optimization - Rust for safety + speed")
+
+try:
+    tree = ast.parse(source)
+    analyzer = FunctionAnalyzer()
+    analyzer.visit(tree)
+
+    result = {
+        "status": "ANALYZED",
+        "source": "PYTHON",
+        "functions": analyzer.functions,
+        "total_complexity": sum(f["complexity"] for f in analyzer.functions)
+    }
+
+    print(json.dumps(result))
+
+except Exception as e:
+    print(json.dumps({"status": "error", "error": str(e)}))
+    >>
+
+    return json.parse(analysis)
+}
+
+fn analyze_ruby(source, path) {
+    io.write("  [ANALYZER] Language: Ruby\n")
+
+    // Ruby analyzer using Ripper parser
+    let analysis = <<ruby[source, path]
+require 'json'
+require 'ripper'
+
+class RubyAnalyzer < Ripper::SexpBuilder
+  def initialize(src)
+    super(src)
+    @functions = []
+  end
+
+  def on_def(name, params, body)
+    # Analyze function complexity
+    complexity = analyze_complexity(body)
+
+    @functions << {
+      name: name[1],
+      complexity: [complexity, 1].max,
+      target: recommend_target_ruby(complexity),
+      reason: "Ruby function optimization"
+    }
+
+    super
+  end
+
+  def analyze_complexity(node)
+    return 0 unless node.is_a?(Array)
+
+    complexity = 0
+    node.each do |item|
+      if item.is_a?(Array)
+        # Count control structures
+        complexity += 1 if [:for, :while, :if, :case].include?(item[0])
+        complexity += analyze_complexity(item)
+      end
+    end
+    complexity
+  end
+
+  def recommend_target_ruby(complexity)
+    if complexity > 8
+      "GO"
+    elsif complexity > 4
+      "CPP"
+    else
+      "RUST"
+    end
+  end
+
+  def get_functions
+    @functions
+  end
+end
+
+begin
+  analyzer = RubyAnalyzer.new(source)
+  analyzer.parse
+
+  result = {
+    status: "ANALYZED",
+    source: "RUBY",
+    functions: analyzer.get_functions
+  }
+
+  puts JSON.generate(result)
+
+rescue => e
+  puts JSON.generate({status: "error", error: e.message})
+end
+    >>
+
+    return json.parse(analysis)
+}
+
+fn analyze_javascript(source, path) {
+    io.write("  [ANALYZER] Language: JavaScript\n")
+
+    // JavaScript analyzer using AST
+    let analysis = <<javascript[source, path]
+const parser = require('acorn');
+const walk = require('acorn-walk');
+
+const functions = [];
+
+try {
+    const ast = parser.parse(source, {ecmaVersion: 2020});
+
+    walk.simple(ast, {
+        FunctionDeclaration(node) {
+            analyzeFunctionNode(node);
+        },
+        ArrowFunctionExpression(node) {
+            analyzeFunctionNode(node);
+        }
+    });
+
+    function analyzeFunctionNode(node) {
+        let complexity = 0;
+        let loopCount = 0;
+
+        walk.simple(node, {
+            ForStatement() { complexity += 2; loopCount++; },
+            WhileStatement() { complexity += 2; loopCount++; },
+            IfStatement() { complexity += 1; }
+        });
+
+        functions.push({
+            name: node.id ? node.id.name : 'anonymous',
+            complexity: Math.max(complexity, 1),
+            has_loops: loopCount > 0,
+            target: complexity > 8 ? 'GO' : complexity > 4 ? 'CPP' : 'RUST',
+            reason: 'JavaScript function optimization'
+        });
+    }
+
+    console.log(JSON.stringify({
+        status: "ANALYZED",
+        source: "JAVASCRIPT",
+        functions: functions
+    }));
+
+} catch (e) {
+    console.log(JSON.stringify({status: "error", error: e.message}));
+}
+    >>
+
+    return json.parse(analysis)
+}
+
+fn analyze_naab(source, path) {
+    io.write("  [ANALYZER] Language: NAAb (self-analysis)\n")
+
+    // Simple regex-based analyzer for NAAb
+    // Count functions and complexity markers
+
+    let functions = []
+    let lines = string.split(source, "\n")
+    let current_func = null
+    let complexity = 0
+
+    for line in lines {
+        // Detect function definition
+        if string.index_of(line, "fn ") != -1 {
+            if current_func != null {
+                // Save previous function
+                functions = array.push(functions, {
+                    "name": current_func,
+                    "complexity": complexity,
+                    "target": complexity > 8 ? "GO" : "RUST",
+                    "reason": "NAAb self-optimization"
+                })
+            }
+
+            // Extract function name
+            let start = string.index_of(line, "fn ") + 3
+            let name_part = string.substring(line, start)
+            let paren = string.index_of(name_part, "(")
+            current_func = string.substring(name_part, 0, paren)
+            complexity = 0
+        }
+
+        // Count complexity markers
+        if string.index_of(line, "for ") != -1 { complexity = complexity + 2 }
+        if string.index_of(line, "while ") != -1 { complexity = complexity + 2 }
+        if string.index_of(line, "if ") != -1 { complexity = complexity + 1 }
+    }
+
+    // Save last function
+    if current_func != null {
+        functions = array.push(functions, {
+            "name": current_func,
+            "complexity": complexity,
+            "target": complexity > 8 ? "GO" : "RUST",
+            "reason": "NAAb self-optimization"
+        })
+    }
+
+    return {
+        "status": "ANALYZED",
+        "source": "NAAB",
+        "functions": functions
+    }
+}
+
+fn analyze_php(source, path) {
+    io.write("  [ANALYZER] Language: PHP\n")
+
+    // PHP analysis using token_get_all
+    let analysis = <<php[source, path]
+<?php
+$tokens = token_get_all($source);
+$functions = [];
+$current_func = null;
+$complexity = 0;
+$brace_depth = 0;
+
+foreach ($tokens as $token) {
+    if (is_array($token)) {
+        list($id, $text) = $token;
+
+        if ($id === T_FUNCTION) {
+            if ($current_func !== null) {
+                $functions[] = [
+                    'name' => $current_func,
+                    'complexity' => max($complexity, 1),
+                    'target' => $complexity > 8 ? 'GO' : 'CPP',
+                    'reason' => 'PHP function optimization'
+                ];
+            }
+            $current_func = '';
+            $complexity = 0;
+        } elseif ($id === T_STRING && $current_func === '') {
+            $current_func = $text;
+        } elseif (in_array($id, [T_FOR, T_FOREACH, T_WHILE])) {
+            $complexity += 2;
+        } elseif ($id === T_IF) {
+            $complexity += 1;
+        }
+    }
+}
+
+if ($current_func !== null) {
+    $functions[] = [
+        'name' => $current_func,
+        'complexity' => max($complexity, 1),
+        'target' => $complexity > 8 ? 'GO' : 'CPP',
+        'reason' => 'PHP function optimization'
+    ];
+}
+
+echo json_encode([
+    'status' => 'ANALYZED',
+    'source' => 'PHP',
+    'functions' => $functions
+]);
+?>
+    >>
+
+    return json.parse(analysis)
+}
+
+fn analyze_java(source, path) {
+    io.write("  [ANALYZER] Language: Java (experimental)\n")
+
+    // Simplified Java analysis - detect methods
+    return {
+        "status": "ANALYZED",
+        "source": "JAVA",
+        "functions": [],
+        "warning": "Java analysis is experimental - manual review recommended"
+    }
+}
+
+fn analyze_go(source, path) {
+    io.write("  [ANALYZER] Language: Go (experimental)\n")
+
+    // Go is already compiled - analysis for comparison purposes
+    return {
+        "status": "ANALYZED",
+        "source": "GO",
+        "functions": [],
+        "note": "Go is already compiled - use for baseline comparison"
+    }
+}
+
+fn analyze_csharp(source, path) {
+    io.write("  [ANALYZER] Language: C# (experimental)\n")
+
+    // C# analysis - experimental
+    return {
+        "status": "ANALYZED",
+        "source": "CSHARP",
+        "functions": [],
+        "warning": "C# analysis is experimental - manual review recommended"
+    }
+}

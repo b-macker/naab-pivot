@@ -1,0 +1,373 @@
+// pivot.naab - Main CLI orchestrator for NAAb Pivot
+// Polyglot Code Evolution & Optimization Platform
+
+use io
+use json
+use env
+use array
+use string
+use file
+
+main {
+    io.write("╔═══════════════════════════════════════════════════════════╗\n")
+    io.write("║        NAAb Pivot - Polyglot Code Evolution v1.0          ║\n")
+    io.write("║    Optimize slow code → Fast compiled code + Proof       ║\n")
+    io.write("╚═══════════════════════════════════════════════════════════╝\n\n")
+
+    let args = env.get_args()
+
+    if array.length(args) < 1 {
+        print_help()
+        return
+    }
+
+    let command = args[0]
+
+    // Load configuration
+    let config = load_config()
+
+    if command == "analyze" {
+        run_analyze(args, config)
+    } else if command == "synthesize" {
+        run_synthesize(args, config)
+    } else if command == "validate" {
+        run_validate(args, config)
+    } else if command == "benchmark" {
+        run_benchmark(args, config)
+    } else if command == "migrate" {
+        run_migrate(args, config)
+    } else if command == "evolve" {
+        run_evolve(args, config)
+    } else if command == "dashboard" {
+        run_dashboard(args, config)
+    } else if command == "--help" || command == "-h" {
+        print_help()
+    } else if command == "--version" || command == "-v" {
+        print_version()
+    } else {
+        io.write("❌ Unknown command: ", command, "\n\n")
+        print_help()
+    }
+}
+
+fn load_config() {
+    // Load .pivotrc from current directory, then home directory, then use defaults
+    let config_paths = [
+        "./.pivotrc",
+        env.get_var("HOME") + "/.pivotrc",
+        env.get_var("HOME") + "/.config/naab-pivot/config.json"
+    ]
+
+    for path in config_paths {
+        if file.exists(path) {
+            try {
+                io.write("📝 Loading config from: ", path, "\n")
+                let config_str = file.read(path)
+                return json.parse(config_str)
+            } catch (e) {
+                io.write("⚠ Failed to load config from ", path, ": ", e, "\n")
+            }
+        }
+    }
+
+    // Return default config
+    return {
+        "default_profile": "balanced",
+        "default_target": "auto",
+        "cache_dir": env.get_var("HOME") + "/.cache/naab-pivot",
+        "output_dir": "./vessels",
+        "dashboard_port": 8080
+    }
+}
+
+fn run_analyze(args, config) {
+    if array.length(args) < 2 {
+        io.write("❌ Missing file argument\n")
+        io.write("Usage: pivot analyze <file>\n")
+        return
+    }
+
+    let file_path = args[1]
+
+    if file.exists(file_path) == false {
+        io.write("❌ File not found: ", file_path, "\n")
+        return
+    }
+
+    io.write("🔍 Analyzing: ", file_path, "\n\n")
+
+    use analyzer
+    let result = analyzer.analyze_file(file_path)
+
+    // Output format: JSON or pretty
+    let format = get_flag_value(args, "--format", "pretty")
+
+    if format == "json" {
+        io.write(json.stringify(result, true), "\n")
+    } else {
+        print_analysis_report(result)
+    }
+}
+
+fn run_synthesize(args, config) {
+    if array.length(args) < 2 {
+        io.write("❌ Missing blueprint argument\n")
+        io.write("Usage: pivot synthesize <blueprint.json>\n")
+        return
+    }
+
+    let blueprint_path = args[1]
+
+    if file.exists(blueprint_path) == false {
+        io.write("❌ Blueprint not found: ", blueprint_path, "\n")
+        return
+    }
+
+    io.write("⚙️ Synthesizing vessels from: ", blueprint_path, "\n\n")
+
+    // Set output directory
+    let output_dir = get_flag_value(args, "--output", config["output_dir"])
+    env.set_var("PIVOT_OUTPUT", output_dir)
+
+    use synthesizer
+    let result = synthesizer.generate_vessels(blueprint_path)
+
+    io.write("\n✅ Synthesis complete!\n")
+    io.write("Generated ", array.length(result["vessels"]), " vessels in ", output_dir, "\n")
+}
+
+fn run_validate(args, config) {
+    if array.length(args) < 3 {
+        io.write("❌ Missing arguments\n")
+        io.write("Usage: pivot validate <legacy> <vessel>\n")
+        return
+    }
+
+    let legacy_path = args[1]
+    let vessel_path = args[2]
+
+    io.write("🔬 Validating parity...\n")
+    io.write("  Legacy: ", legacy_path, "\n")
+    io.write("  Vessel: ", vessel_path, "\n\n")
+
+    use validator
+    let result = validator.validate_parity(legacy_path, vessel_path)
+
+    if result["certified"] == true {
+        io.write("✅ PARITY CERTIFIED\n")
+        io.write("  Speedup: ", result["performance"]["speedup"], "x\n")
+        io.write("  Test cases: ", result["test_count"], "\n")
+    } else {
+        io.write("❌ PARITY FAILED\n")
+        io.write("  Review validation report for details\n")
+    }
+}
+
+fn run_benchmark(args, config) {
+    if array.length(args) < 2 {
+        io.write("❌ Missing directory argument\n")
+        io.write("Usage: pivot benchmark <directory>\n")
+        return
+    }
+
+    let bench_dir = args[1]
+
+    io.write("📊 Running benchmark suite: ", bench_dir, "\n\n")
+
+    use benchmark
+    let result = benchmark.run_suite(bench_dir)
+
+    let format = get_flag_value(args, "--format", "json")
+
+    if format == "html" {
+        use report_generator
+        report_generator.generate_report(result, "html", bench_dir + "/benchmark-report.html")
+        io.write("📄 HTML report: ", bench_dir, "/benchmark-report.html\n")
+    } else if format == "csv" {
+        use report_generator
+        report_generator.generate_report(result, "csv", bench_dir + "/benchmark-report.csv")
+        io.write("📄 CSV report: ", bench_dir, "/benchmark-report.csv\n")
+    } else {
+        io.write(json.stringify(result, true), "\n")
+    }
+}
+
+fn run_migrate(args, config) {
+    if array.length(args) < 2 {
+        io.write("❌ Missing project directory\n")
+        io.write("Usage: pivot migrate <project-dir>\n")
+        return
+    }
+
+    let project_dir = args[1]
+
+    io.write("🔄 Creating migration plan for: ", project_dir, "\n\n")
+
+    use migrate
+    let plan = migrate.create_migration_plan(project_dir)
+
+    let output_path = project_dir + "/migration-plan.json"
+    file.write(output_path, json.stringify(plan, true))
+
+    io.write("✅ Migration plan created: ", output_path, "\n")
+    io.write("Total files to migrate: ", plan["total_files"], "\n")
+}
+
+fn run_evolve(args, config) {
+    // Full pipeline: analyze → synthesize → validate → benchmark
+    if array.length(args) < 2 {
+        io.write("❌ Missing file argument\n")
+        io.write("Usage: pivot evolve <file> [options]\n")
+        return
+    }
+
+    let file_path = args[1]
+
+    if file.exists(file_path) == false {
+        io.write("❌ File not found: ", file_path, "\n")
+        return
+    }
+
+    let profile = get_flag_value(args, "--profile", config["default_profile"])
+    let output_dir = get_flag_value(args, "--output", config["output_dir"])
+
+    io.write("🚀 Evolution Pipeline Starting...\n")
+    io.write("  Source: ", file_path, "\n")
+    io.write("  Profile: ", profile, "\n")
+    io.write("  Output: ", output_dir, "\n\n")
+
+    env.set_var("PIVOT_PROFILE", profile)
+    env.set_var("PIVOT_OUTPUT", output_dir)
+
+    // Step 1: Analyze
+    io.write("═══ Step 1/4: Analysis ═══\n")
+    use analyzer
+    let analysis = analyzer.analyze_file(file_path)
+
+    if analysis["status"] == "error" {
+        io.write("❌ Analysis failed: ", analysis["error"], "\n")
+        return
+    }
+
+    io.write("✓ Found ", array.length(analysis["functions"]), " optimization targets\n\n")
+
+    // Save blueprint
+    let blueprint_path = output_dir + "/blueprint.json"
+    <<bash[output_dir] mkdir -p "$output_dir" >>
+    file.write(blueprint_path, json.stringify(analysis, true))
+
+    // Step 2: Synthesize
+    io.write("═══ Step 2/4: Synthesis ═══\n")
+    use synthesizer
+    let synth_result = synthesizer.generate_vessels(blueprint_path)
+
+    io.write("✓ Generated ", array.length(synth_result["vessels"]), " vessels\n\n")
+
+    // Step 3: Validate
+    io.write("═══ Step 3/4: Validation ═══\n")
+
+    let validate_flag = get_flag_value(args, "--validate", "true")
+
+    if validate_flag == "true" {
+        // Run parity validation on first vessel
+        if array.length(synth_result["vessels"]) > 0 {
+            let vessel = synth_result["vessels"][0]
+
+            if vessel["status"] == "COMPILED" {
+                use validator
+                let valid_result = validator.validate_parity(file_path, vessel["bin"])
+
+                if valid_result["certified"] == true {
+                    io.write("✓ Parity CERTIFIED (", valid_result["performance"]["speedup"], "x speedup)\n\n")
+                } else {
+                    io.write("⚠ Parity check failed\n\n")
+                }
+            } else {
+                io.write("⚠ Vessel not compiled, skipping validation\n\n")
+            }
+        }
+    } else {
+        io.write("⊘ Validation skipped (--validate=false)\n\n")
+    }
+
+    // Step 4: Summary
+    io.write("═══ Step 4/4: Summary ═══\n")
+    io.write("✅ Evolution Complete!\n")
+    io.write("  Vessels: ", output_dir, "/\n")
+    io.write("  Blueprint: ", blueprint_path, "\n")
+}
+
+fn run_dashboard(args, config) {
+    io.write("🌐 Launching dashboard...\n\n")
+
+    let port = get_flag_value(args, "--port", "" + config["dashboard_port"])
+    env.set_var("PIVOT_DASHBOARD_PORT", port)
+
+    use dashboard
+    // Dashboard server will run and block
+}
+
+fn get_flag_value(args, flag_name, default_value) {
+    // Parse --flag=value or --flag value
+    for i in 0..array.length(args) {
+        let arg = args[i]
+
+        if string.index_of(arg, flag_name + "=") == 0 {
+            return string.substring(arg, string.length(flag_name) + 1)
+        } else if arg == flag_name {
+            if i + 1 < array.length(args) {
+                return args[i + 1]
+            }
+        }
+    }
+
+    return default_value
+}
+
+fn print_analysis_report(result) {
+    if result["status"] == "error" {
+        io.write("❌ Error: ", result["error"], "\n")
+        return
+    }
+
+    io.write("Language: ", result["source"], "\n")
+    io.write("Functions found: ", array.length(result["functions"]), "\n\n")
+
+    for func in result["functions"] {
+        io.write("  • ", func["name"], "\n")
+        io.write("    Complexity: ", func["complexity"], "\n")
+        io.write("    Recommended target: ", func["target"], "\n")
+        io.write("    Reason: ", func["reason"], "\n\n")
+    }
+}
+
+fn print_help() {
+    io.write("Usage: naab-pivot <command> [options]\n\n")
+    io.write("Commands:\n")
+    io.write("  analyze <file>      Detect optimization opportunities in source code\n")
+    io.write("  synthesize <json>   Generate optimized vessels from blueprint\n")
+    io.write("  validate <a> <b>    Prove parity between legacy and vessel\n")
+    io.write("  benchmark <dir>     Run performance benchmarks\n")
+    io.write("  migrate <dir>       Create migration plan for large codebase\n")
+    io.write("  evolve <file>       Full pipeline (analyze→synthesize→validate)\n")
+    io.write("  dashboard           Launch web dashboard\n\n")
+    io.write("Options:\n")
+    io.write("  --profile <name>    Optimization profile (ultra-safe|conservative|balanced|aggressive|experimental)\n")
+    io.write("  --output <path>     Output directory for vessels (default: ./vessels)\n")
+    io.write("  --format <fmt>      Report format (json|html|csv|markdown|sarif)\n")
+    io.write("  --validate <bool>   Run parity validation (default: true)\n")
+    io.write("  --port <num>        Dashboard port (default: 8080)\n\n")
+    io.write("Examples:\n")
+    io.write("  naab-pivot analyze slow_code.py\n")
+    io.write("  naab-pivot evolve slow_code.py --profile aggressive\n")
+    io.write("  naab-pivot benchmark ./tests --format html\n")
+    io.write("  naab-pivot migrate ./legacy-codebase\n")
+    io.write("  naab-pivot dashboard --port 3000\n\n")
+    io.write("Documentation: https://github.com/b-macker/naab-pivot\n")
+}
+
+fn print_version() {
+    io.write("NAAb Pivot v1.0.0\n")
+    io.write("Polyglot Code Evolution & Optimization Platform\n")
+    io.write("Built with NAAb Language\n")
+}

@@ -1,0 +1,239 @@
+// synthesize.naab - Vessel code generator with caching and error recovery
+// Generates optimized code in 8 target languages
+
+use io
+use json
+use file
+use string
+use time
+use env
+
+export fn generate_vessels(blueprint_path) {
+    io.write("  [SYNTHESIZER] Loading blueprint: ", blueprint_path, "\n")
+
+    if file.exists(blueprint_path) == false {
+        return {"status": "error", "error": "Blueprint not found"}
+    }
+
+    let blueprint_json = file.read(blueprint_path)
+    let blueprint = json.parse(blueprint_json)
+
+    // Load template engine
+    use template_engine
+
+    let vessels = []
+    let out_dir = env.get_var("PIVOT_OUTPUT") || "./vessels/"
+    let profile = env.get_var("PIVOT_PROFILE") || "balanced"
+
+    io.write("  [SYNTHESIZER] Output directory: ", out_dir, "\n")
+    io.write("  [SYNTHESIZER] Optimization profile: ", profile, "\n\n")
+
+    // Ensure output directory exists
+    <<bash[out_dir] mkdir -p "$out_dir" >>
+
+    // Load profile configuration
+    let profile_config = load_profile(profile)
+
+    for func in blueprint["functions"] {
+        let name = func["name"]
+        let target = func["target"]
+
+        io.write("  [SYNTHESIZER] Generating ", name, " (", target, ")...\n")
+
+        try {
+            // Generate source code from template
+            let code = template_engine.generate(func, target, profile_config)
+            let ext = get_extension(target)
+            let src_path = out_dir + name + "_" + target + "." + ext
+            let bin_path = out_dir + name + "_vessel"
+
+            // Check if recompilation needed
+            if should_rebuild(src_path, bin_path, code) {
+                file.write(src_path, code)
+                io.write("    ✓ Source written: ", src_path, "\n")
+
+                // Attempt compilation
+                try {
+                    compile_vessel(src_path, bin_path, target, profile_config)
+                    io.write("    ✓ Compiled: ", bin_path, "\n")
+
+                    vessels = array.push(vessels, {
+                        "name": name,
+                        "target": target,
+                        "src": src_path,
+                        "bin": bin_path,
+                        "status": "COMPILED",
+                        "profile": profile
+                    })
+                } catch (e) {
+                    io.write("    ⚠ Compilation failed: ", e, "\n")
+                    io.write("    Falling back to interpreted mode\n")
+
+                    vessels = array.push(vessels, {
+                        "name": name,
+                        "target": target,
+                        "src": src_path,
+                        "status": "INTERPRETED",
+                        "error": "" + e,
+                        "profile": profile
+                    })
+                }
+            } else {
+                io.write("    ✓ Using cached vessel\n")
+
+                vessels = array.push(vessels, {
+                    "name": name,
+                    "target": target,
+                    "bin": bin_path,
+                    "status": "CACHED",
+                    "profile": profile
+                })
+            }
+        } catch (e) {
+            io.write("    ✗ Synthesis failed: ", e, "\n")
+
+            vessels = array.push(vessels, {
+                "name": name,
+                "target": target,
+                "status": "FAILED",
+                "error": "" + e
+            })
+        }
+
+        io.write("\n")
+    }
+
+    return {"status": "SYNTHESIZED", "vessels": vessels, "profile": profile}
+}
+
+fn load_profile(profile_name) {
+    let profile_path = "profiles/" + profile_name + ".json"
+
+    if file.exists(profile_path) == false {
+        io.write("  ⚠ Profile not found: ", profile_path, ", using defaults\n")
+        return {
+            "optimization_level": "O2",
+            "use_simd": false,
+            "use_parallel": false,
+            "unsafe_allowed": false
+        }
+    }
+
+    try {
+        let profile_str = file.read(profile_path)
+        return json.parse(profile_str)
+    } catch (e) {
+        io.write("  ⚠ Failed to load profile: ", e, "\n")
+        return {
+            "optimization_level": "O2",
+            "use_simd": false,
+            "use_parallel": false,
+            "unsafe_allowed": false
+        }
+    }
+}
+
+fn get_extension(target) {
+    if target == "GO" { return "go" }
+    if target == "CPP" { return "cpp" }
+    if target == "RUST" { return "rs" }
+    if target == "RUBY" { return "rb" }
+    if target == "JAVASCRIPT" { return "js" }
+    if target == "PHP" { return "php" }
+    if target == "ZIG" { return "zig" }
+    if target == "JULIA" { return "jl" }
+    return "txt"
+}
+
+fn should_rebuild(src_path, bin_path, new_code) {
+    // Check if source file exists and matches
+    if file.exists(src_path) == false {
+        return true
+    }
+
+    if file.exists(bin_path) == false {
+        return true
+    }
+
+    // Check if source code changed
+    let old_code = file.read(src_path)
+    if old_code != new_code {
+        return true
+    }
+
+    // Check timestamps (bin should be newer than src)
+    // Note: NAAb doesn't have file.mtime yet, so we skip this check
+
+    return false
+}
+
+fn compile_vessel(src, bin, target, profile) {
+    let opt_level = profile["optimization_level"] || "O2"
+    let use_simd = profile["use_simd"] || false
+    let use_parallel = profile["use_parallel"] || false
+
+    if target == "GO" {
+        compile_go(src, bin, opt_level)
+    } else if target == "CPP" {
+        compile_cpp(src, bin, opt_level, use_simd)
+    } else if target == "RUST" {
+        compile_rust(src, bin, opt_level)
+    } else if target == "ZIG" {
+        compile_zig(src, bin, opt_level)
+    } else {
+        // Interpreted languages don't need compilation
+        io.write("    ⊘ ", target, " is interpreted, no compilation needed\n")
+    }
+}
+
+fn compile_go(src, bin, opt_level) {
+    let ldflags = "-s -w"  // Strip debug info
+    if opt_level == "O3" || opt_level == "aggressive" {
+        ldflags = ldflags + " -X main.version=optimized"
+    }
+
+    <<bash[src, bin, ldflags]
+    go build -ldflags "$ldflags" -o "$bin" "$src" 2>&1
+    >>
+}
+
+fn compile_cpp(src, bin, opt_level, use_simd) {
+    let flags = "-std=c++17 -" + opt_level
+
+    if use_simd == true {
+        flags = flags + " -march=native -mtune=native"
+    }
+
+    if opt_level == "O3" || opt_level == "aggressive" {
+        flags = flags + " -funroll-loops -ffast-math"
+    }
+
+    <<bash[src, bin, flags]
+    g++ $flags -o "$bin" "$src" 2>&1
+    >>
+}
+
+fn compile_rust(src, bin, opt_level) {
+    let rust_opt = "3"  // Default to -C opt-level=3
+
+    if opt_level == "O0" { rust_opt = "0" }
+    if opt_level == "O1" { rust_opt = "1" }
+    if opt_level == "O2" { rust_opt = "2" }
+    if opt_level == "O3" || opt_level == "aggressive" { rust_opt = "3" }
+
+    <<bash[src, bin, rust_opt]
+    rustc -C opt-level=$rust_opt -C lto=fat -o "$bin" "$src" 2>&1
+    >>
+}
+
+fn compile_zig(src, bin, opt_level) {
+    let zig_opt = "ReleaseFast"
+
+    if opt_level == "O0" { zig_opt = "Debug" }
+    if opt_level == "O1" || opt_level == "O2" { zig_opt = "ReleaseSafe" }
+    if opt_level == "O3" || opt_level == "aggressive" { zig_opt = "ReleaseFast" }
+
+    <<bash[src, bin, zig_opt]
+    zig build-exe -O $zig_opt -femit-bin="$bin" "$src" 2>&1
+    >>
+}
