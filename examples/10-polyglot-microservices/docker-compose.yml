@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # Service A: API Gateway (Python/Flask)
+  # Handles HTTP requests, orchestrates calls to other services
+  api-gateway:
+    build:
+      context: ./service-a-python
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVICE_NAME=api-gateway
+      - RUST_SERVICE_URL=http://pricing-service:8001
+      - GO_SERVICE_URL=http://inventory-service:8002
+      - LOG_LEVEL=INFO
+    depends_on:
+      - pricing-service
+      - inventory-service
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Service B: Pricing Engine (Rust)
+  # Compute-intensive pricing calculations
+  # Originally Python, migrated to Rust for 15x speedup
+  pricing-service:
+    build:
+      context: ./service-b-rust
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_NAME=pricing-service
+      - RUST_LOG=info
+      - WORKERS=4
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Service C: Inventory Manager (Go)
+  # High-concurrency inventory queries
+  # Originally Python, migrated to Go for 8x throughput
+  inventory-service:
+    build:
+      context: ./service-c-go
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - SERVICE_NAME=inventory-service
+      - GOMAXPROCS=4
+      - LOG_LEVEL=info
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis: Shared cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - microservices-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Prometheus: Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - microservices-net
+
+  # Grafana: Metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - microservices-net
+    depends_on:
+      - prometheus
+
+networks:
+  microservices-net:
+    driver: bridge
