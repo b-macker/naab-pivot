@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  naab-pivot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bmacker/naab-pivot:latest
+    container_name: naab-pivot
+    volumes:
+      - ./workspace:/workspace
+      - ./vessels:/opt/naab-pivot/vessels
+      - ./benchmark-history:/opt/naab-pivot/benchmark-history
+    environment:
+      - PIVOT_OUTPUT=/workspace/vessels
+      - PIVOT_PROFILE=balanced
+      - PIVOT_WORKSPACE=/workspace
+    working_dir: /workspace
+    command: /opt/naab-pivot/naab/build/naab-lang /opt/naab-pivot/pivot.naab --help
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bmacker/naab-pivot:latest
+    container_name: naab-pivot-dashboard
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./workspace:/workspace
+      - ./vessels:/opt/naab-pivot/vessels
+      - ./benchmark-history:/opt/naab-pivot/benchmark-history
+    environment:
+      - PIVOT_DASHBOARD_PORT=8080
+      - PIVOT_DASHBOARD_HOST=0.0.0.0
+      - PIVOT_WORKSPACE=/workspace
+    working_dir: /opt/naab-pivot
+    command: /opt/naab-pivot/naab/build/naab-lang /opt/naab-pivot/dashboard/serve.naab
+    depends_on:
+      - naab-pivot
+
+networks:
+  default:
+    name: naab-pivot-network

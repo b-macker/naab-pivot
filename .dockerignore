@@ -1,0 +1,50 @@
+# Git
+.git/
+.gitignore
+.gitmodules
+
+# Build artifacts
+naab/build/
+vessels/
+*.o
+*.so
+*.a
+*_vessel
+
+# Test outputs
+test-output/
+*-report.*
+benchmark-history/
+
+# Cache
+.cache/
+__pycache__/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (not needed in container)
+docs/
+
+# Examples (not needed in container build)
+examples/
+
+# Development
+.env
+.env.local
+tmp/
+temp/
+
+# CI/CD
+.github/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
