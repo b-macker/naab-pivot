@@ -1,0 +1,64 @@
+# Build artifacts
+naab/build/
+vessels/
+*.o
+*.so
+*.a
+*.dylib
+*.dll
+
+# Test outputs
+test-output/
+*-report.json
+*-report.html
+*-report.csv
+*-report.md
+*-report.sarif
+benchmark-history/*.json
+
+# Compiled binaries
+*_vessel
+*_GO
+*_CPP
+*_RUST
+*_RUBY
+*_JS
+*_PHP
+*_ZIG
+*_JULIA
+
+# Cache directories
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Environment
+.env
+.env.local
+.pivotrc.local
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
