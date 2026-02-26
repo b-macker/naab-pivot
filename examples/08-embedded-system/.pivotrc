@@ -1,0 +1,42 @@
+{
+  "project_name": "embedded-sensor-processing",
+  "profile": "embedded",
+  "target_languages": ["zig"],
+  "preferred_target": "zig",
+  "validate": true,
+  "benchmark_iterations": 50,
+
+  "optimization": {
+    "size_optimization": true,
+    "no_std": true,
+    "no_heap_alloc": true,
+    "stack_only": true,
+    "inline_aggressive": true,
+    "strip_symbols": true,
+    "lto": true
+  },
+
+  "zig_specific": {
+    "opt_mode": "ReleaseFast",
+    "target": "native",
+    "single_threaded": true,
+    "strip": true,
+    "link_libc": false,
+    "panic_strategy": "halt",
+    "error_tracing": false,
+    "safety_checks": false,
+    "valgrind_support": false
+  },
+
+  "embedded_constraints": {
+    "max_binary_size_kb": 64,
+    "max_ram_usage_kb": 16,
+    "no_dynamic_allocation": true,
+    "deterministic_execution": true,
+    "hard_realtime": false
+  },
+
+  "workload_type": "embedded_iot",
+  "algorithm": "sensor_data_processing",
+  "concurrency_model": "single_threaded"
+}
