@@ -1,0 +1,334 @@
+// migrate.naab - Incremental migration helper for large codebases
+// Creates prioritized migration plans with dependency analysis
+
+use io
+use json
+use file
+use array
+use string
+
+export fn create_migration_plan(project_dir) {
+    io.write("  [MIGRATE] Analyzing project: ", project_dir, "\n\n")
+
+    if file.exists(project_dir) == false {
+        return {"status": "error", "error": "Project directory not found"}
+    }
+
+    // Scan all source files
+    io.write("  Step 1: Discovering source files...\n")
+    let files = discover_source_files(project_dir)
+
+    io.write("  Found ", array.length(files), " source files\n\n")
+
+    if array.length(files) == 0 {
+        return {
+            "status": "NO_FILES",
+            "total_files": 0,
+            "candidates": []
+        }
+    }
+
+    // Analyze each file for optimization potential
+    io.write("  Step 2: Analyzing optimization potential...\n")
+
+    use analyzer
+
+    let candidates = []
+    let analyzed_count = 0
+
+    for file_path in files {
+        io.write("    Analyzing: ", file_path, "\r")
+
+        try {
+            let analysis = analyzer.analyze_file(file_path)
+
+            if analysis["status"] == "ANALYZED" {
+                // Calculate optimization score
+                let score = calculate_priority_score(analysis)
+                let estimated_speedup = estimate_speedup(analysis)
+
+                candidates = array.push(candidates, {
+                    "file": file_path,
+                    "score": score,
+                    "functions": analysis["functions"],
+                    "total_complexity": analysis["total_complexity"] || 0,
+                    "estimated_speedup": estimated_speedup,
+                    "source_language": analysis["source"]
+                })
+
+                analyzed_count = analyzed_count + 1
+            }
+        } catch (e) {
+            // Skip files that fail analysis
+            io.write("    ⚠ Failed to analyze: ", file_path, " - ", e, "\n")
+        }
+    }
+
+    io.write("\n  Analyzed ", analyzed_count, " files successfully\n\n")
+
+    // Sort by optimization score (highest first)
+    io.write("  Step 3: Prioritizing migration targets...\n")
+    candidates = sort_by_score(candidates)
+
+    // Create migration phases
+    io.write("  Step 4: Creating migration phases...\n")
+    let phases = create_migration_phases(candidates)
+
+    io.write("  Created ", array.length(phases), " migration phases\n\n")
+
+    // Generate dependency graph
+    io.write("  Step 5: Analyzing dependencies...\n")
+    let dependency_graph = analyze_dependencies(candidates, project_dir)
+
+    io.write("  Identified ", dependency_graph["edge_count"], " dependencies\n\n")
+
+    return {
+        "status": "PLAN_CREATED",
+        "total_files": array.length(files),
+        "analyzed_files": analyzed_count,
+        "candidates": candidates,
+        "phases": phases,
+        "dependencies": dependency_graph,
+        "estimated_total_speedup": calculate_total_speedup(candidates)
+    }
+}
+
+fn discover_source_files(dir) {
+    // Use bash to find source files
+    let output = <<bash[dir]
+    find "$dir" -type f \( \
+        -name "*.py" -o \
+        -name "*.rb" -o \
+        -name "*.js" -o \
+        -name "*.naab" -o \
+        -name "*.php" \
+    \) 2>/dev/null || echo ""
+    >>
+
+    let file_list = string.split(string.trim(output), "\n")
+
+    // Filter empty strings and hidden files
+    let result = []
+    for f in file_list {
+        let trimmed = string.trim(f)
+        if string.length(trimmed) > 0 {
+            // Skip hidden files and node_modules
+            if string.index_of(trimmed, "/.") == -1 && string.index_of(trimmed, "/node_modules/") == -1 {
+                result = array.push(result, trimmed)
+            }
+        }
+    }
+
+    return result
+}
+
+fn calculate_priority_score(analysis) {
+    // Scoring factors:
+    // - Total complexity (higher = better candidate)
+    // - Number of functions (more functions = higher impact)
+    // - Function types (loops, math, crypto get bonus points)
+
+    let total_complexity = 0
+    let function_count = array.length(analysis["functions"])
+    let bonus_points = 0
+
+    for func in analysis["functions"] {
+        total_complexity = total_complexity + func["complexity"]
+
+        // Bonus for specific patterns
+        if func["has_loops"] == true {
+            bonus_points = bonus_points + 5
+        }
+
+        if func["math_operations"] != null && func["math_operations"] > 5 {
+            bonus_points = bonus_points + 10
+        }
+
+        if func["loop_count"] != null && func["loop_count"] > 2 {
+            bonus_points = bonus_points + 8
+        }
+    }
+
+    // Final score: complexity × function_count + bonus
+    let score = (total_complexity * function_count) + bonus_points
+
+    return score
+}
+
+fn estimate_speedup(analysis) {
+    // Rough speedup estimation based on complexity and target language
+    let avg_speedup = 0.0
+    let count = 0
+
+    for func in analysis["functions"] {
+        let base_speedup = 3.0  // Conservative baseline
+
+        // Adjust based on complexity
+        if func["complexity"] > 10 {
+            base_speedup = base_speedup + 2.0
+        }
+
+        // Adjust based on target language
+        if func["target"] == "RUST" || func["target"] == "CPP" {
+            base_speedup = base_speedup + 1.5
+        } else if func["target"] == "GO" {
+            base_speedup = base_speedup + 1.0
+        }
+
+        // Adjust based on operation types
+        if func["has_loops"] == true {
+            base_speedup = base_speedup + 0.5
+        }
+
+        avg_speedup = avg_speedup + base_speedup
+        count = count + 1
+    }
+
+    if count > 0 {
+        return avg_speedup / (1.0 * count)
+    }
+
+    return 3.0  // Default conservative estimate
+}
+
+fn sort_by_score(candidates) {
+    // Bubble sort (simple implementation)
+    let n = array.length(candidates)
+
+    for i in 0..(n - 1) {
+        for j in 0..(n - i - 1) {
+            if candidates[j]["score"] < candidates[j + 1]["score"] {
+                // Swap
+                let temp = candidates[j]
+                candidates[j] = candidates[j + 1]
+                candidates[j + 1] = temp
+            }
+        }
+    }
+
+    return candidates
+}
+
+fn create_migration_phases(candidates) {
+    // Create phases based on score thresholds
+    let phases = []
+    let phase1 = []  // High priority (score > 50)
+    let phase2 = []  // Medium priority (score 20-50)
+    let phase3 = []  // Low priority (score < 20)
+
+    for candidate in candidates {
+        if candidate["score"] > 50 {
+            phase1 = array.push(phase1, candidate["file"])
+        } else if candidate["score"] > 20 {
+            phase2 = array.push(phase2, candidate["file"])
+        } else {
+            phase3 = array.push(phase3, candidate["file"])
+        }
+    }
+
+    if array.length(phase1) > 0 {
+        phases = array.push(phases, {
+            "phase": 1,
+            "name": "High Priority - Quick Wins",
+            "files": phase1,
+            "description": "High complexity files with significant optimization potential"
+        })
+    }
+
+    if array.length(phase2) > 0 {
+        phases = array.push(phases, {
+            "phase": 2,
+            "name": "Medium Priority - Core Components",
+            "files": phase2,
+            "description": "Medium complexity files with good optimization potential"
+        })
+    }
+
+    if array.length(phase3) > 0 {
+        phases = array.push(phases, {
+            "phase": 3,
+            "name": "Low Priority - Optional",
+            "files": phase3,
+            "description": "Low complexity files with marginal benefits"
+        })
+    }
+
+    return phases
+}
+
+fn analyze_dependencies(candidates, project_dir) {
+    // Simple dependency analysis - detect imports/requires
+    let edges = []
+    let edge_count = 0
+
+    for candidate in candidates {
+        let file_path = candidate["file"]
+
+        try {
+            let source = file.read(file_path)
+            let imports = extract_imports(source)
+
+            edge_count = edge_count + array.length(imports)
+
+            // Store dependency information
+            edges = array.push(edges, {
+                "file": file_path,
+                "imports": imports
+            })
+        } catch (e) {
+            // Skip files that can't be read
+        }
+    }
+
+    return {
+        "edges": edges,
+        "edge_count": edge_count
+    }
+}
+
+fn extract_imports(source) {
+    // Extract import statements (simplified)
+    let imports = []
+    let lines = string.split(source, "\n")
+
+    for line in lines {
+        let trimmed = string.trim(line)
+
+        // Python imports
+        if string.index_of(trimmed, "import ") == 0 || string.index_of(trimmed, "from ") == 0 {
+            imports = array.push(imports, trimmed)
+        }
+
+        // Ruby requires
+        if string.index_of(trimmed, "require ") == 0 {
+            imports = array.push(imports, trimmed)
+        }
+
+        // JavaScript imports
+        if string.index_of(trimmed, "const ") == 0 && string.index_of(trimmed, "require(") != -1 {
+            imports = array.push(imports, trimmed)
+        }
+    }
+
+    return imports
+}
+
+fn calculate_total_speedup(candidates) {
+    // Weighted average of estimated speedups
+    let total_weighted = 0.0
+    let total_weight = 0
+
+    for candidate in candidates {
+        let weight = candidate["score"]
+        let speedup = candidate["estimated_speedup"]
+
+        total_weighted = total_weighted + (speedup * (1.0 * weight))
+        total_weight = total_weight + weight
+    }
+
+    if total_weight > 0 {
+        return total_weighted / (1.0 * total_weight)
+    }
+
+    return 1.0
+}

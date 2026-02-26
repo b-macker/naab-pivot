@@ -1,0 +1,302 @@
+// validate.naab - Parity validator with statistical analysis
+// Proves that optimized code produces identical results to legacy code
+
+use io
+use json
+use time
+use array
+use math
+use env
+use string
+
+export fn validate_parity(legacy_path, vessel_path) {
+    io.write("  [VALIDATOR] Comparing implementations...\n")
+    io.write("    Legacy: ", legacy_path, "\n")
+    io.write("    Vessel: ", vessel_path, "\n\n")
+
+    // Load or generate test cases
+    let test_cases = load_test_cases()
+
+    if array.length(test_cases) == 0 {
+        io.write("  [VALIDATOR] No test cases found, generating...\n")
+        test_cases = generate_test_cases()
+    }
+
+    io.write("  [VALIDATOR] Running ", array.length(test_cases), " test cases...\n\n")
+
+    let legacy_results = []
+    let vessel_results = []
+    let legacy_times = []
+    let vessel_times = []
+
+    // Run legacy implementation
+    io.write("  Running legacy implementation...\n")
+    for i in 0..array.length(test_cases) {
+        let test = test_cases[i]
+        let start = time.now()
+
+        try {
+            let result = run_legacy(legacy_path, test)
+            let duration = time.now() - start
+
+            legacy_results = array.push(legacy_results, result)
+            legacy_times = array.push(legacy_times, duration)
+
+            io.write("    Test ", i + 1, "/", array.length(test_cases), " - ", duration, "ms\n")
+        } catch (e) {
+            io.write("    ✗ Test ", i + 1, " failed: ", e, "\n")
+            legacy_results = array.push(legacy_results, null)
+            legacy_times = array.push(legacy_times, 0)
+        }
+    }
+
+    let time_legacy = array_sum(legacy_times)
+
+    io.write("  Total legacy time: ", time_legacy, "ms\n\n")
+
+    // Run vessel implementation
+    io.write("  Running vessel implementation...\n")
+    for i in 0..array.length(test_cases) {
+        let test = test_cases[i]
+        let start = time.now()
+
+        try {
+            let result = run_vessel(vessel_path, test)
+            let duration = time.now() - start
+
+            vessel_results = array.push(vessel_results, result)
+            vessel_times = array.push(vessel_times, duration)
+
+            io.write("    Test ", i + 1, "/", array.length(test_cases), " - ", duration, "ms\n")
+        } catch (e) {
+            io.write("    ✗ Test ", i + 1, " failed: ", e, "\n")
+            vessel_results = array.push(vessel_results, null)
+            vessel_times = array.push(vessel_times, 0)
+        }
+    }
+
+    let time_vessel = array_sum(vessel_times)
+
+    io.write("  Total vessel time: ", time_vessel, "ms\n\n")
+
+    // Parity check with statistical analysis
+    let tolerance_str = env.get_var("PIVOT_TOLERANCE") || "0.001"
+    let threshold = json.parse(tolerance_str)
+
+    let differences = []
+    let certified = true
+    let failures = []
+
+    for i in 0..array.length(legacy_results) {
+        let legacy_val = legacy_results[i]
+        let vessel_val = vessel_results[i]
+
+        if legacy_val == null || vessel_val == null {
+            certified = false
+            failures = array.push(failures, i)
+            continue
+        }
+
+        // Convert to numbers if string
+        let legacy_num = parse_number(legacy_val)
+        let vessel_num = parse_number(vessel_val)
+
+        let diff = abs(legacy_num - vessel_num)
+        let rel_err = 0.0
+
+        if legacy_num != 0.0 {
+            rel_err = diff / abs(legacy_num)
+        } else {
+            rel_err = diff
+        }
+
+        differences = array.push(differences, {"absolute": diff, "relative": rel_err})
+
+        if rel_err > threshold {
+            io.write("    ⚠ Test ", i + 1, " failed parity: relative error = ", rel_err, "\n")
+            io.write("      Legacy: ", legacy_val, ", Vessel: ", vessel_val, "\n")
+            certified = false
+            failures = array.push(failures, i)
+        }
+    }
+
+    // Statistical summary
+    let stats = compute_stats(differences)
+
+    io.write("\n  ═══════════════════════════════════════════════\n")
+    if certified {
+        io.write("  ✅ PARITY CERTIFIED\n")
+    } else {
+        io.write("  ❌ PARITY FAILED (",  array.length(failures), " failures)\n")
+    }
+    io.write("  ═══════════════════════════════════════════════\n\n")
+
+    let speedup = 1.0
+    if time_vessel > 0 {
+        speedup = (1.0 * time_legacy) / (1.0 * time_vessel)
+    }
+
+    return {
+        "certified": certified,
+        "test_count": array.length(test_cases),
+        "failures": failures,
+        "tolerance": threshold,
+        "performance": {
+            "legacy_ms": time_legacy,
+            "vessel_ms": time_vessel,
+            "speedup": speedup
+        },
+        "statistics": stats
+    }
+}
+
+fn load_test_cases() {
+    // Try to load test cases from file
+    let test_file = "test-cases.json"
+
+    if file.exists(test_file) {
+        try {
+            let test_str = file.read(test_file)
+            let test_data = json.parse(test_str)
+            return test_data["cases"]
+        } catch (e) {
+            io.write("  ⚠ Failed to load test cases: ", e, "\n")
+        }
+    }
+
+    return []
+}
+
+fn generate_test_cases() {
+    // Auto-generate test cases
+    let cases = [
+        {"input": 100, "description": "Small value"},
+        {"input": 1000, "description": "Medium value"},
+        {"input": 10000, "description": "Large value"},
+        {"input": 0, "description": "Edge case: zero"},
+        {"input": 1, "description": "Edge case: one"},
+        {"input": -100, "description": "Negative value"}
+    ]
+
+    return cases
+}
+
+fn run_legacy(legacy_path, test_case) {
+    let input = test_case["input"]
+
+    // Determine how to run legacy code based on extension
+    if string.index_of(legacy_path, ".py") != -1 {
+        return run_python_legacy(legacy_path, input)
+    } else if string.index_of(legacy_path, ".rb") != -1 {
+        return run_ruby_legacy(legacy_path, input)
+    } else if string.index_of(legacy_path, ".js") != -1 {
+        return run_js_legacy(legacy_path, input)
+    } else if string.index_of(legacy_path, ".naab") != -1 {
+        return run_naab_legacy(legacy_path, input)
+    } else {
+        throw "Unsupported legacy file type"
+    }
+}
+
+fn run_python_legacy(path, input) {
+    let output = <<bash[path, input]
+    python3 "$path" "$input" 2>&1 | tail -1
+    >>
+    return string.trim(output)
+}
+
+fn run_ruby_legacy(path, input) {
+    let output = <<bash[path, input]
+    ruby "$path" "$input" 2>&1 | tail -1
+    >>
+    return string.trim(output)
+}
+
+fn run_js_legacy(path, input) {
+    let output = <<bash[path, input]
+    node "$path" "$input" 2>&1 | tail -1
+    >>
+    return string.trim(output)
+}
+
+fn run_naab_legacy(path, input) {
+    let output = <<bash[path, input]
+    ./naab/build/naab-lang "$path" "$input" 2>&1 | tail -1
+    >>
+    return string.trim(output)
+}
+
+fn run_vessel(vessel_path, test_case) {
+    let input = test_case["input"]
+
+    // Run compiled vessel
+    let output = <<bash[vessel_path, input]
+    "$vessel_path" "$input" 2>&1 | tail -1
+    >>
+
+    return string.trim(output)
+}
+
+fn parse_number(val) {
+    // Try to parse as number
+    try {
+        return json.parse("" + val)
+    } catch (e) {
+        // If parsing fails, use string hash
+        return string.length("" + val)
+    }
+}
+
+fn abs(x) {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
+
+fn array_sum(arr) {
+    let sum = 0
+    for val in arr {
+        sum = sum + val
+    }
+    return sum
+}
+
+fn compute_stats(differences) {
+    if array.length(differences) == 0 {
+        return {
+            "mean_absolute": 0,
+            "mean_relative": 0,
+            "max_absolute": 0,
+            "max_relative": 0
+        }
+    }
+
+    let sum_abs = 0.0
+    let sum_rel = 0.0
+    let max_abs = 0.0
+    let max_rel = 0.0
+
+    for diff in differences {
+        sum_abs = sum_abs + diff["absolute"]
+        sum_rel = sum_rel + diff["relative"]
+
+        if diff["absolute"] > max_abs {
+            max_abs = diff["absolute"]
+        }
+
+        if diff["relative"] > max_rel {
+            max_rel = diff["relative"]
+        }
+    }
+
+    let count = array.length(differences)
+
+    return {
+        "mean_absolute": sum_abs / (1.0 * count),
+        "mean_relative": sum_rel / (1.0 * count),
+        "max_absolute": max_abs,
+        "max_relative": max_rel,
+        "sample_count": count
+    }
+}

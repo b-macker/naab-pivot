@@ -1,0 +1,263 @@
+// benchmark.naab - Performance benchmarking suite with regression detection
+// Tracks performance over time and generates trend reports
+
+use io
+use json
+use time
+use file
+use array
+use string
+
+export fn run_suite(bench_dir) {
+    io.write("  [BENCHMARK] Running benchmark suite: ", bench_dir, "\n\n")
+
+    // Discover all benchmark files
+    let bench_files = find_benchmark_files(bench_dir)
+
+    if array.length(bench_files) == 0 {
+        io.write("  ⚠ No benchmark files found in ", bench_dir, "\n")
+        io.write("  Expected: *.bench.json files\n")
+        return {"status": "NO_BENCHMARKS", "results": []}
+    }
+
+    let results = []
+
+    for bench_file in bench_files {
+        io.write("  Running: ", bench_file, "\n")
+        let result = run_single_benchmark(bench_file)
+        results = array.push(results, result)
+        io.write("\n")
+    }
+
+    // Generate summary
+    let summary = generate_summary(results)
+
+    // Save results
+    let report_path = bench_dir + "/benchmark-report.json"
+    let report_data = {
+        "timestamp": time.now(),
+        "suite": bench_dir,
+        "results": results,
+        "summary": summary
+    }
+
+    file.write(report_path, json.stringify(report_data, true))
+
+    io.write("  ✓ Benchmark complete: ", report_path, "\n")
+    io.write("  Total benchmarks: ", array.length(results), "\n")
+    io.write("  Average time: ", summary["average_time"], "ms\n")
+
+    return report_data
+}
+
+fn find_benchmark_files(dir) {
+    // Use bash to find *.bench.json files
+    let output = <<bash[dir]
+    find "$dir" -name "*.bench.json" 2>/dev/null || echo ""
+    >>
+
+    let files = string.split(string.trim(output), "\n")
+
+    // Filter empty strings
+    let result = []
+    for f in files {
+        if string.length(string.trim(f)) > 0 {
+            result = array.push(result, f)
+        }
+    }
+
+    return result
+}
+
+fn run_single_benchmark(bench_path) {
+    if file.exists(bench_path) == false {
+        return {
+            "benchmark": bench_path,
+            "status": "NOT_FOUND",
+            "error": "Benchmark file not found"
+        }
+    }
+
+    try {
+        let bench_str = file.read(bench_path)
+        let bench_spec = json.parse(bench_str)
+
+        // Run N iterations and collect timings
+        let iterations = bench_spec["iterations"] || 10
+        let timings = []
+
+        io.write("    Iterations: ", iterations, "\n")
+
+        for i in 0..iterations {
+            let timing = run_benchmark_task(bench_spec["task"])
+            timings = array.push(timings, timing)
+
+            if i % 10 == 0 && i > 0 {
+                io.write("    Progress: ", i, "/", iterations, "\n")
+            }
+        }
+
+        // Compute statistics
+        let stats = compute_benchmark_stats(timings)
+
+        return {
+            "benchmark": bench_spec["name"] || bench_path,
+            "status": "COMPLETED",
+            "iterations": iterations,
+            "timings": timings,
+            "statistics": stats
+        }
+    } catch (e) {
+        return {
+            "benchmark": bench_path,
+            "status": "ERROR",
+            "error": "" + e
+        }
+    }
+}
+
+fn run_benchmark_task(task) {
+    // Task structure: {"command": "...", "args": [...]}
+    let command = task["command"]
+    let args = task["args"] || []
+
+    let start = time.now()
+
+    // Execute command
+    try {
+        if string.index_of(command, ".naab") != -1 {
+            // Run NAAb script
+            <<bash[command]
+            ./naab/build/naab-lang "$command" 2>&1 >/dev/null
+            >>
+        } else {
+            // Run shell command
+            <<bash[command]
+            eval "$command" 2>&1 >/dev/null
+            >>
+        }
+    } catch (e) {
+        io.write("      ⚠ Task failed: ", e, "\n")
+    }
+
+    let duration = time.now() - start
+
+    return duration
+}
+
+fn compute_benchmark_stats(timings) {
+    if array.length(timings) == 0 {
+        return {
+            "mean": 0,
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "stddev": 0
+        }
+    }
+
+    // Sort timings for median
+    let sorted = array.sort(timings)
+
+    let sum = 0
+    let min_val = sorted[0]
+    let max_val = sorted[0]
+
+    for t in timings {
+        sum = sum + t
+
+        if t < min_val {
+            min_val = t
+        }
+
+        if t > max_val {
+            max_val = t
+        }
+    }
+
+    let count = array.length(timings)
+    let mean = sum / count
+
+    // Median
+    let median = 0
+    if count % 2 == 0 {
+        median = (sorted[count / 2 - 1] + sorted[count / 2]) / 2
+    } else {
+        median = sorted[count / 2]
+    }
+
+    // Standard deviation
+    let variance_sum = 0
+    for t in timings {
+        let diff = t - mean
+        variance_sum = variance_sum + (diff * diff)
+    }
+
+    let variance = variance_sum / count
+    let stddev = sqrt(variance)
+
+    return {
+        "mean": mean,
+        "median": median,
+        "min": min_val,
+        "max": max_val,
+        "stddev": stddev
+    }
+}
+
+fn sqrt(x) {
+    // Simple Newton-Raphson square root
+    if x <= 0 {
+        return 0
+    }
+
+    let guess = x / 2.0
+    let epsilon = 0.0001
+
+    for i in 0..20 {
+        let new_guess = (guess + x / guess) / 2.0
+
+        if abs(new_guess - guess) < epsilon {
+            return new_guess
+        }
+
+        guess = new_guess
+    }
+
+    return guess
+}
+
+fn abs(x) {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
+
+fn generate_summary(results) {
+    let total_time = 0
+    let completed_count = 0
+    let failed_count = 0
+
+    for result in results {
+        if result["status"] == "COMPLETED" {
+            completed_count = completed_count + 1
+            total_time = total_time + result["statistics"]["mean"]
+        } else {
+            failed_count = failed_count + 1
+        }
+    }
+
+    let average_time = 0
+    if completed_count > 0 {
+        average_time = total_time / completed_count
+    }
+
+    return {
+        "total_benchmarks": array.length(results),
+        "completed": completed_count,
+        "failed": failed_count,
+        "total_time": total_time,
+        "average_time": average_time
+    }
+}
