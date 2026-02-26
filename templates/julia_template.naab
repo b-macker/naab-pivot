@@ -1,0 +1,163 @@
+#!/usr/bin/env julia
+# templates/julia_template.naab - Julia code generation template
+# Variable substitution: ${FUNCTION_NAME}, ${ITERATIONS}, ${COMPLEXITY}
+# Profile variables: ${OPT_LEVEL}, ${SIMD_ENABLED}, ${THREADS}
+
+using Printf
+
+# ${FUNCTION_NAME} - Auto-generated optimized function
+# Complexity: ${COMPLEXITY}
+# Iterations: ${ITERATIONS}
+function ${FUNCTION_NAME}(val::Float64)::Float64
+    # Core computation with type stability
+    v::Float64 = sqrt(val^2 + 0.5)
+
+    # Main computation loop (loop unrolling hint)
+    @inbounds @simd for i in 1:${ITERATIONS}
+        v = sqrt(v + 0.01)
+        v *= 1.0001  # Prevent constant folding
+    end
+
+    return v
+end
+
+# SIMD-optimized version using LoopVectorization.jl
+function ${FUNCTION_NAME}_simd(val::Float64)::Float64
+    # Vectorized computation
+    values = fill(val, 4)
+
+    @turbo for i in 1:(${ITERATIONS} ÷ 4)
+        for j in 1:4
+            values[j] = sqrt(values[j] + 0.01)
+        end
+    end
+
+    return sum(values) / 4.0
+end
+
+# Parallel version using Threads
+function ${FUNCTION_NAME}_parallel(val::Float64, workers::Int64=4)::Float64
+    if workers <= 1
+        return ${FUNCTION_NAME}(val)
+    end
+
+    # Split work across threads
+    chunk_size = ${ITERATIONS} ÷ workers
+    results = Vector{Float64}(undef, workers)
+
+    Threads.@threads for w in 1:workers
+        start_idx = (w - 1) * chunk_size + 1
+        end_idx = w * chunk_size
+        v = val
+
+        for i in start_idx:end_idx
+            v = sqrt(v + 0.01)
+        end
+
+        results[w] = v
+    end
+
+    return sum(results) / workers
+end
+
+# GPU-accelerated version using CUDA.jl
+function ${FUNCTION_NAME}_gpu(val::Float64)::Float64
+    try
+        using CUDA
+
+        # Transfer to GPU
+        d_values = CUDA.fill(val, 1024)
+
+        # GPU kernel
+        function compute_kernel!(values)
+            idx = threadIdx().x
+            for i in 1:(${ITERATIONS} ÷ 1024)
+                values[idx] = sqrt(values[idx] + 0.01)
+            end
+            return nothing
+        end
+
+        @cuda threads=1024 compute_kernel!(d_values)
+
+        # Transfer back and reduce
+        h_values = Array(d_values)
+        return sum(h_values) / length(h_values)
+    catch e
+        # CUDA not available, fallback
+        return ${FUNCTION_NAME}(val)
+    end
+end
+
+# Memoization with LRU cache
+const CACHE = Dict{Float64, Float64}()
+const CACHE_SIZE = 1000
+
+function ${FUNCTION_NAME}_cached(val::Float64)::Float64
+    if haskey(CACHE, val)
+        return CACHE[val]
+    end
+
+    result = ${FUNCTION_NAME}(val)
+
+    if length(CACHE) >= CACHE_SIZE
+        # Remove oldest entry
+        delete!(CACHE, first(keys(CACHE)))
+    end
+
+    CACHE[val] = result
+    return result
+end
+
+# Main execution
+function main()
+    args = ARGS
+
+    # Help mode
+    if isempty(args)
+        println("READY")
+        println("Function: ${FUNCTION_NAME}")
+        println("Complexity: ${COMPLEXITY}")
+        println("Julia version: ", VERSION)
+        println("Threads: ", Threads.nthreads())
+        return
+    end
+
+    # Parse input
+    local input::Float64
+    try
+        input = parse(Float64, args[1])
+    catch e
+        println(stderr, "Error: Invalid input: ", e)
+        exit(1)
+    end
+
+    # Run computation
+    start_time = time_ns()
+
+    result = if ${COMPLEXITY} > 20
+        ${FUNCTION_NAME}_gpu(input)
+    elseif ${COMPLEXITY} > 15
+        ${FUNCTION_NAME}_simd(input)
+    elseif ${COMPLEXITY} > 10
+        ${FUNCTION_NAME}_parallel(input, Threads.nthreads())
+    else
+        ${FUNCTION_NAME}(input)
+    end
+
+    end_time = time_ns()
+    elapsed = (end_time - start_time) / 1_000_000.0  # Convert to ms
+
+    # Output result with high precision
+    @printf "%.15f\n" result
+
+    # Timing info to stderr
+    if length(args) > 1 && args[2] == "--timing"
+        println(stderr, @sprintf "Time: %.3fms" elapsed)
+    end
+end
+
+# Precompile for faster startup
+precompile(${FUNCTION_NAME}, (Float64,))
+
+# Run main
+main()

@@ -1,0 +1,96 @@
+// templates/zig_template.naab - Zig code generation template
+// Variable substitution: ${FUNCTION_NAME}, ${ITERATIONS}, ${COMPLEXITY}
+// Profile variables: ${OPT_LEVEL}, ${SIMD_FLAGS}, ${SAFETY_MODE}
+// Compilation: zig build-exe -O${OPT_LEVEL} source.zig
+
+const std = @import("std");
+const math = std.math;
+const time = std.time;
+
+// ${FUNCTION_NAME} - Auto-generated optimized function
+// Complexity: ${COMPLEXITY}
+// Iterations: ${ITERATIONS}
+inline fn ${FUNCTION_NAME}(val: f64) f64 {
+    // Core computation with comptime safety checks
+    var v: f64 = @sqrt(math.pow(f64, val, 2) + 0.5);
+
+    // Main computation loop
+    comptime var i: usize = 0;
+    inline while (i < ${ITERATIONS}) : (i += 1) {
+        v = @sqrt(v + 0.01);
+        v *= 1.0001; // Prevent constant folding
+    }
+
+    return v;
+}
+
+// SIMD-optimized version (if ${SIMD_FLAGS} enabled)
+fn ${FUNCTION_NAME}_simd(val: f64) f64 {
+    const Vector = @Vector(4, f64);
+    var v = @splat(4, val);
+
+    var i: usize = 0;
+    while (i < ${ITERATIONS} / 4) : (i += 1) {
+        v += @splat(4, @as(f64, 0.01));
+        v = @sqrt(v);
+    }
+
+    // Reduce vector to scalar
+    return @reduce(.Add, v) / 4.0;
+}
+
+// Error handling with Zig's error unions
+const ComputeError = error{
+    InvalidInput,
+    Overflow,
+};
+
+fn parseFloat(str: []const u8) !f64 {
+    return std.fmt.parseFloat(f64, str) catch |err| {
+        std.debug.print("Error parsing float: {}\n", .{err});
+        return ComputeError.InvalidInput;
+    };
+}
+
+pub fn main() !void {
+    const stdout = std.io.getStdOut().writer();
+    const stderr = std.io.getStdErr().writer();
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    const args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, args);
+
+    // Help mode
+    if (args.len < 2) {
+        try stdout.print("READY\n", .{});
+        try stdout.print("Function: ${FUNCTION_NAME}\n", .{});
+        try stdout.print("Complexity: ${COMPLEXITY}\n", .{});
+        try stdout.print("Optimization: ${OPT_LEVEL}\n", .{});
+        return;
+    }
+
+    // Parse input
+    const input = try parseFloat(args[1]);
+
+    // Run computation
+    const start = time.nanoTimestamp();
+
+    const result = if (${COMPLEXITY} > 15)
+        ${FUNCTION_NAME}_simd(input)
+    else
+        ${FUNCTION_NAME}(input);
+
+    const end = time.nanoTimestamp();
+    const elapsed = @intToFloat(f64, end - start) / 1_000_000.0; // Convert to ms
+
+    // Output result with high precision
+    try stdout.print("{d:.15}\n", .{result});
+
+    // Timing info to stderr
+    if (args.len > 2 and std.mem.eql(u8, args[2], "--timing")) {
+        try stderr.print("Time: {d:.3}ms\n", .{elapsed});
+    }
+}

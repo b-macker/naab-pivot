@@ -1,0 +1,93 @@
+// templates/cpp_template.naab - C++ code generation template
+// Variable substitution: ${FUNCTION_NAME}, ${ITERATIONS}, ${COMPLEXITY}
+// Profile variables: ${OPT_LEVEL}, ${SIMD_FLAGS}, ${LTO}
+// Compilation: g++ ${OPT_LEVEL} ${SIMD_FLAGS} -std=c++17 -o vessel source.cpp
+
+#include <iostream>
+#include <cmath>
+#include <string>
+#include <chrono>
+#include <iomanip>
+
+${SIMD_INCLUDES}
+
+// ${FUNCTION_NAME} - Auto-generated optimized function
+// Complexity: ${COMPLEXITY}
+// Iterations: ${ITERATIONS}
+inline double ${FUNCTION_NAME}(double val) {
+    // Core computation with compiler hints
+    double v = std::sqrt(std::pow(val, 2) + 0.5);
+
+    // Main computation loop
+    #pragma GCC unroll 8
+    for (int i = 0; i < ${ITERATIONS}; ++i) {
+        v = std::sqrt(v + 0.01);
+        v *= 1.0001; // Prevent constant folding
+    }
+
+    return v;
+}
+
+// SIMD-optimized version (if ${SIMD_FLAGS} enabled)
+#if defined(__AVX2__) || defined(__SSE4_2__)
+inline double ${FUNCTION_NAME}_simd(double val) {
+    // Vectorized computation for supported CPUs
+    __attribute__((aligned(32))) double values[4] = {val, val, val, val};
+
+    #pragma omp simd
+    for (int batch = 0; batch < ${ITERATIONS} / 4; ++batch) {
+        for (int i = 0; i < 4; ++i) {
+            values[i] = std::sqrt(values[i] + 0.01);
+        }
+    }
+
+    return (values[0] + values[1] + values[2] + values[3]) / 4.0;
+}
+#endif
+
+int main(int argc, char* argv[]) {
+    // Help mode
+    if (argc < 2) {
+        std::cout << "READY" << std::endl;
+        std::cout << "Function: ${FUNCTION_NAME}" << std::endl;
+        std::cout << "Complexity: ${COMPLEXITY}" << std::endl;
+        std::cout << "Optimization: ${OPT_LEVEL}" << std::endl;
+        return 0;
+    }
+
+    // Parse input
+    double input;
+    try {
+        input = std::stod(argv[1]);
+    } catch (const std::exception& e) {
+        std::cerr << "Error: Invalid input: " << e.what() << std::endl;
+        return 1;
+    }
+
+    // Run computation
+    auto start = std::chrono::high_resolution_clock::now();
+
+    double result;
+#if defined(__AVX2__) || defined(__SSE4_2__)
+    if (${COMPLEXITY} > 15) {
+        result = ${FUNCTION_NAME}_simd(input);
+    } else {
+        result = ${FUNCTION_NAME}(input);
+    }
+#else
+    result = ${FUNCTION_NAME}(input);
+#endif
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    // Output result with high precision
+    std::cout << std::fixed << std::setprecision(15) << result << std::endl;
+
+    // Timing info to stderr
+    if (argc > 2 && std::string(argv[2]) == "--timing") {
+        std::cerr << "Time: " << (elapsed.count() / 1000.0) << "ms" << std::endl;
+    }
+
+    return 0;
+}

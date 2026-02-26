@@ -1,0 +1,111 @@
+#!/usr/bin/env ruby
+# templates/ruby_template.naab - Ruby code generation template
+# Variable substitution: ${FUNCTION_NAME}, ${ITERATIONS}, ${COMPLEXITY}
+# Profile variables: ${OPT_LEVEL}, ${PARALLELISM}
+
+require 'benchmark'
+
+# ${FUNCTION_NAME} - Auto-generated optimized function
+# Complexity: ${COMPLEXITY}
+# Iterations: ${ITERATIONS}
+def ${FUNCTION_NAME}(val)
+  # Core computation
+  v = Math.sqrt(val**2 + 0.5)
+
+  # Main computation loop
+  ${ITERATIONS}.times do
+    v = Math.sqrt(v + 0.01)
+    v *= 1.0001 # Prevent constant folding
+  end
+
+  v
+end
+
+# Parallel version using Ractor (Ruby 3.0+)
+def ${FUNCTION_NAME}_parallel(val, workers = 4)
+  return ${FUNCTION_NAME}(val) if workers <= 1
+
+  # Split work across Ractors
+  chunk_size = ${ITERATIONS} / workers
+
+  ractors = workers.times.map do |w|
+    start_idx = w * chunk_size
+    end_idx = (w + 1) * chunk_size
+
+    Ractor.new(val, start_idx, end_idx) do |input, start_i, end_i|
+      v = input
+      (start_i...end_i).each do
+        v = Math.sqrt(v + 0.01)
+      end
+      v
+    end
+  end
+
+  # Combine results
+  results = ractors.map(&:take)
+  results.sum / workers.to_f
+end
+
+# Optimized version with memoization
+class OptimizedComputation
+  def initialize
+    @cache = {}
+  end
+
+  def compute(val)
+    return @cache[val] if @cache.key?(val)
+
+    result = ${FUNCTION_NAME}(val)
+    @cache[val] = result
+    result
+  end
+
+  def clear_cache
+    @cache.clear
+  end
+end
+
+# Main execution
+if __FILE__ == $PROGRAM_NAME
+  # Help mode
+  if ARGV.empty?
+    puts "READY"
+    puts "Function: ${FUNCTION_NAME}"
+    puts "Complexity: ${COMPLEXITY}"
+    puts "Ruby version: #{RUBY_VERSION}"
+    exit 0
+  end
+
+  # Parse input
+  begin
+    input = Float(ARGV[0])
+  rescue ArgumentError => e
+    warn "Error: Invalid input: #{e.message}"
+    exit 1
+  end
+
+  # Run computation
+  start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+  result = if ${COMPLEXITY} > 10 && RUBY_VERSION >= '3.0'
+    begin
+      ${FUNCTION_NAME}_parallel(input, 4)
+    rescue NameError
+      # Ractor not available, fallback
+      ${FUNCTION_NAME}(input)
+    end
+  else
+    ${FUNCTION_NAME}(input)
+  end
+
+  end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  elapsed = (end_time - start_time) * 1000.0
+
+  # Output result with high precision
+  printf("%.15f\n", result)
+
+  # Timing info to stderr
+  if ARGV[1] == "--timing"
+    warn "Time: %.3fms" % elapsed
+  end
+end

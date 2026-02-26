@@ -1,0 +1,126 @@
+#!/usr/bin/env php
+<?php
+// templates/php_template.naab - PHP code generation template
+// Variable substitution: ${FUNCTION_NAME}, ${ITERATIONS}, ${COMPLEXITY}
+// Profile variables: ${OPT_LEVEL}, ${JIT_ENABLED}
+
+// ${FUNCTION_NAME} - Auto-generated optimized function
+// Complexity: ${COMPLEXITY}
+// Iterations: ${ITERATIONS}
+function ${FUNCTION_NAME}(float $val): float {
+    // Core computation
+    $v = sqrt(pow($val, 2) + 0.5);
+
+    // Main computation loop
+    for ($i = 0; $i < ${ITERATIONS}; $i++) {
+        $v = sqrt($v + 0.01);
+        $v *= 1.0001; // Prevent constant folding
+    }
+
+    return $v;
+}
+
+// Parallel version using pthreads (PHP 7.2+, requires pthreads extension)
+class ComputeWorker extends Thread {
+    private $input;
+    private $start;
+    private $end;
+    public $result;
+
+    public function __construct(float $input, int $start, int $end) {
+        $this->input = $input;
+        $this->start = $start;
+        $this->end = $end;
+    }
+
+    public function run() {
+        $v = $this->input;
+        for ($i = $this->start; $i < $this->end; $i++) {
+            $v = sqrt($v + 0.01);
+        }
+        $this->result = $v;
+    }
+}
+
+function ${FUNCTION_NAME}_parallel(float $val, int $workers = 4): float {
+    if ($workers <= 1 || !class_exists('Thread')) {
+        return ${FUNCTION_NAME}($val);
+    }
+
+    $chunkSize = intdiv(${ITERATIONS}, $workers);
+    $threads = [];
+
+    for ($w = 0; $w < $workers; $w++) {
+        $start = $w * $chunkSize;
+        $end = ($w + 1) * $chunkSize;
+        $thread = new ComputeWorker($val, $start, $end);
+        $thread->start();
+        $threads[] = $thread;
+    }
+
+    // Wait for all threads
+    $results = [];
+    foreach ($threads as $thread) {
+        $thread->join();
+        $results[] = $thread->result;
+    }
+
+    return array_sum($results) / $workers;
+}
+
+// Optimized version with memoization
+class OptimizedComputation {
+    private $cache = [];
+
+    public function compute(float $val): float {
+        if (isset($this->cache[$val])) {
+            return $this->cache[$val];
+        }
+
+        $result = ${FUNCTION_NAME}($val);
+        $this->cache[$val] = $result;
+        return $result;
+    }
+
+    public function clearCache(): void {
+        $this->cache = [];
+    }
+}
+
+// Main execution
+if (php_sapi_name() === 'cli') {
+    // Help mode
+    if ($argc < 2) {
+        echo "READY\n";
+        echo "Function: ${FUNCTION_NAME}\n";
+        echo "Complexity: ${COMPLEXITY}\n";
+        echo "PHP version: " . PHP_VERSION . "\n";
+        exit(0);
+    }
+
+    // Parse input
+    $input = filter_var($argv[1], FILTER_VALIDATE_FLOAT);
+    if ($input === false) {
+        fwrite(STDERR, "Error: Invalid input: {$argv[1]}\n");
+        exit(1);
+    }
+
+    // Run computation
+    $startTime = microtime(true);
+
+    $result = (${COMPLEXITY} > 10 && class_exists('Thread'))
+        ? ${FUNCTION_NAME}_parallel($input, 4)
+        : ${FUNCTION_NAME}($input);
+
+    $endTime = microtime(true);
+    $elapsed = ($endTime - $startTime) * 1000.0;
+
+    // Output result with high precision
+    printf("%.15f\n", $result);
+
+    // Timing info to stderr
+    if (isset($argv[2]) && $argv[2] === '--timing') {
+        fwrite(STDERR, sprintf("Time: %.3fms\n", $elapsed));
+    }
+}
+?>

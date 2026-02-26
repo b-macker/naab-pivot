@@ -1,0 +1,96 @@
+// templates/go_template.naab - Go code generation template
+// Variable substitution: ${FUNCTION_NAME}, ${ITERATIONS}, ${COMPLEXITY}
+// Profile variables: ${OPT_LEVEL}, ${SIMD_FLAGS}, ${LTO}
+
+package main
+
+import (
+	"fmt"
+	"math"
+	"os"
+	"strconv"
+	"time"
+)
+
+// ${FUNCTION_NAME} - Auto-generated optimized function
+// Complexity: ${COMPLEXITY}
+// Iterations: ${ITERATIONS}
+func ${FUNCTION_NAME}(val float64) float64 {
+	// Core computation with loop unrolling hints
+	v := math.Sqrt(math.Pow(val, 2) + 0.5)
+
+	// Main computation loop
+	for i := 0; i < ${ITERATIONS}; i++ {
+		v = math.Sqrt(v + 0.01)
+		v = v * 1.0001 // Prevent constant folding
+	}
+
+	return v
+}
+
+// Parallel version for high complexity (${COMPLEXITY} > 10)
+func ${FUNCTION_NAME}Parallel(val float64, workers int) float64 {
+	if workers <= 1 {
+		return ${FUNCTION_NAME}(val)
+	}
+
+	// Split work across goroutines
+	chunkSize := ${ITERATIONS} / workers
+	results := make(chan float64, workers)
+
+	for w := 0; w < workers; w++ {
+		go func(start, end int) {
+			v := val
+			for i := start; i < end; i++ {
+				v = math.Sqrt(v + 0.01)
+			}
+			results <- v
+		}(w*chunkSize, (w+1)*chunkSize)
+	}
+
+	// Combine results
+	finalResult := 0.0
+	for w := 0; w < workers; w++ {
+		finalResult += <-results
+	}
+
+	return finalResult / float64(workers)
+}
+
+func main() {
+	// Help mode
+	if len(os.Args) < 2 {
+		fmt.Println("READY")
+		fmt.Printf("Function: %s\n", "${FUNCTION_NAME}")
+		fmt.Printf("Complexity: %d\n", ${COMPLEXITY})
+		fmt.Printf("Optimization: ${OPT_LEVEL}\n")
+		return
+	}
+
+	// Parse input
+	input, err := strconv.ParseFloat(os.Args[1], 64)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Invalid input: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Run computation
+	start := time.Now()
+	var result float64
+
+	if ${COMPLEXITY} > 10 {
+		result = ${FUNCTION_NAME}Parallel(input, 4)
+	} else {
+		result = ${FUNCTION_NAME}(input)
+	}
+
+	elapsed := time.Since(start)
+
+	// Output result with high precision
+	fmt.Printf("%.15f\n", result)
+
+	// Timing info to stderr
+	if len(os.Args) > 2 && os.Args[2] == "--timing" {
+		fmt.Fprintf(os.Stderr, "Time: %.3fms\n", float64(elapsed.Microseconds())/1000.0)
+	}
+}

@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+// templates/js_template.naab - JavaScript code generation template
+// Variable substitution: ${FUNCTION_NAME}, ${ITERATIONS}, ${COMPLEXITY}
+// Profile variables: ${OPT_LEVEL}, ${WORKER_THREADS}
+
+const { performance } = require('perf_hooks');
+
+// ${FUNCTION_NAME} - Auto-generated optimized function
+// Complexity: ${COMPLEXITY}
+// Iterations: ${ITERATIONS}
+function ${FUNCTION_NAME}(val) {
+    // Core computation
+    let v = Math.sqrt(Math.pow(val, 2) + 0.5);
+
+    // Main computation loop
+    for (let i = 0; i < ${ITERATIONS}; i++) {
+        v = Math.sqrt(v + 0.01);
+        v *= 1.0001; // Prevent constant folding
+    }
+
+    return v;
+}
+
+// Parallel version using Worker Threads (Node.js 10.5+)
+async function ${FUNCTION_NAME}_parallel(val, workers = 4) {
+    if (workers <= 1) {
+        return ${FUNCTION_NAME}(val);
+    }
+
+    const { Worker } = require('worker_threads');
+    const path = require('path');
+
+    const chunkSize = Math.floor(${ITERATIONS} / workers);
+
+    const workerPromises = [];
+    for (let w = 0; w < workers; w++) {
+        const start = w * chunkSize;
+        const end = (w + 1) * chunkSize;
+
+        const workerCode = `
+            const { parentPort, workerData } = require('worker_threads');
+            let v = workerData.input;
+            for (let i = workerData.start; i < workerData.end; i++) {
+                v = Math.sqrt(v + 0.01);
+            }
+            parentPort.postMessage(v);
+        `;
+
+        const workerPromise = new Promise((resolve, reject) => {
+            const worker = new Worker(workerCode, {
+                eval: true,
+                workerData: { input: val, start, end }
+            });
+            worker.on('message', resolve);
+            worker.on('error', reject);
+        });
+
+        workerPromises.push(workerPromise);
+    }
+
+    const results = await Promise.all(workerPromises);
+    return results.reduce((sum, r) => sum + r, 0) / workers;
+}
+
+// Optimized version with memoization
+class OptimizedComputation {
+    constructor() {
+        this.cache = new Map();
+    }
+
+    compute(val) {
+        if (this.cache.has(val)) {
+            return this.cache.get(val);
+        }
+
+        const result = ${FUNCTION_NAME}(val);
+        this.cache.set(val, result);
+        return result;
+    }
+
+    clearCache() {
+        this.cache.clear();
+    }
+}
+
+// Main execution
+async function main() {
+    const args = process.argv.slice(2);
+
+    // Help mode
+    if (args.length === 0) {
+        console.log("READY");
+        console.log("Function: ${FUNCTION_NAME}");
+        console.log("Complexity: ${COMPLEXITY}");
+        console.log("Node.js version:", process.version);
+        process.exit(0);
+    }
+
+    // Parse input
+    const input = parseFloat(args[0]);
+    if (isNaN(input)) {
+        console.error("Error: Invalid input:", args[0]);
+        process.exit(1);
+    }
+
+    // Run computation
+    const startTime = performance.now();
+
+    let result;
+    if (${COMPLEXITY} > 10) {
+        try {
+            result = await ${FUNCTION_NAME}_parallel(input, 4);
+        } catch (e) {
+            // Worker threads not available, fallback
+            result = ${FUNCTION_NAME}(input);
+        }
+    } else {
+        result = ${FUNCTION_NAME}(input);
+    }
+
+    const endTime = performance.now();
+    const elapsed = endTime - startTime;
+
+    // Output result with high precision
+    console.log(result.toFixed(15));
+
+    // Timing info to stderr
+    if (args[1] === "--timing") {
+        console.error(`Time: ${elapsed.toFixed(3)}ms`);
+    }
+}
+
+// Run main and handle errors
+main().catch(err => {
+    console.error("Error:", err.message);
+    process.exit(1);
+});
