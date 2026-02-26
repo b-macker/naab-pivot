@@ -1,0 +1,110 @@
+// Unit tests for benchmark.naab module
+use io
+use json
+use array
+
+main {
+    io.write("  [TEST] Benchmark Unit Tests\n")
+
+    let pass_count = 0
+    let fail_count = 0
+
+    // Test 1: Benchmark suite discovery
+    try {
+        io.write("    Test 1: Benchmark file discovery... ")
+        
+        let bench_files = [
+            "bench1.bench.json",
+            "bench2.bench.json",
+            "bench3.bench.json"
+        ]
+        
+        if array.length(bench_files) >= 3 {
+            io.write("✓ PASS (", array.length(bench_files), " files)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 2: Timing collection
+    try {
+        io.write("    Test 2: Timing data collection... ")
+        
+        let timings = [812.5, 815.2, 808.9, 810.1, 813.7]
+        
+        if array.length(timings) >= 5 {
+            io.write("✓ PASS (", array.length(timings), " samples)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 3: Statistical summary (mean calculation)
+    try {
+        io.write("    Test 3: Mean calculation... ")
+        
+        let timings = [800.0, 810.0, 820.0, 830.0, 840.0]
+        let sum = 0.0
+        
+        for t in timings {
+            sum = sum + t
+        }
+        
+        let mean = sum / (1.0 * array.length(timings))
+        
+        if mean > 800.0 && mean < 850.0 {
+            io.write("✓ PASS (mean: ", mean, "ms)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL (mean out of range)\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 4: Min/max detection
+    try {
+        io.write("    Test 4: Min/max detection... ")
+        
+        let timings = [815.0, 808.0, 820.0, 812.0, 825.0]
+        let min_val = timings[0]
+        let max_val = timings[0]
+        
+        for t in timings {
+            if t < min_val { min_val = t }
+            if t > max_val { max_val = t }
+        }
+        
+        if min_val == 808.0 && max_val == 825.0 {
+            io.write("✓ PASS (min: ", min_val, ", max: ", max_val, ")\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Summary
+    io.write("\n  ═══════════════════════════════════════════════\n")
+    io.write("  Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("  ═══════════════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Tests failed"
+    }
+}

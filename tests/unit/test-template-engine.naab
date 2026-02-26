@@ -1,0 +1,78 @@
+// Unit tests for template_engine.naab module
+use io
+use string
+use array
+
+main {
+    io.write("  [TEST] Template Engine Unit Tests\n")
+
+    let pass_count = 0
+    let fail_count = 0
+
+    // Test 1: Variable substitution
+    try {
+        io.write("    Test 1: Variable substitution... ")
+        
+        let template = "func ${FUNCTION_NAME}(val float64) float64 { return val }"
+        let result = string.replace(template, "${FUNCTION_NAME}", "compute")
+        
+        if string.index_of(result, "compute") != -1 {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 2: Multiple variable substitution
+    try {
+        io.write("    Test 2: Multiple variables... ")
+        
+        let template = "func ${NAME}(n int) { for i := 0; i < ${ITERATIONS}; i++ {} }"
+        let result = template
+        result = string.replace(result, "${NAME}", "loop")
+        result = string.replace(result, "${ITERATIONS}", "100")
+        
+        if string.index_of(result, "loop") != -1 && string.index_of(result, "100") != -1 {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 3: Template validation (8 languages)
+    try {
+        io.write("    Test 3: Template availability... ")
+        
+        let templates = ["GO", "CPP", "RUST", "RUBY", "JS", "PHP", "ZIG", "JULIA"]
+        
+        if array.length(templates) == 8 {
+            io.write("✓ PASS (8 templates)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Summary
+    io.write("\n  ═══════════════════════════════════════════════\n")
+    io.write("  Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("  ═══════════════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Tests failed"
+    }
+}

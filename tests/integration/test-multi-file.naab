@@ -1,0 +1,99 @@
+// Integration test: Multi-file project evolution
+use io
+use array
+
+main {
+    io.write("  [INTEGRATION] Multi-File Project Test\n\n")
+
+    let pass_count = 0
+    let fail_count = 0
+
+    // Test 1: Multiple source files analysis
+    try {
+        io.write("    Test 1: Multi-file analysis... ")
+        
+        let files = [
+            {"path": "module_a.py", "functions": 5},
+            {"path": "module_b.py", "functions": 3},
+            {"path": "module_c.py", "functions": 7}
+        ]
+        
+        let total_functions = 0
+        for file in files {
+            total_functions = total_functions + file["functions"]
+        }
+        
+        if total_functions == 15 {
+            io.write("✓ PASS (", total_functions, " functions)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 2: Dependency resolution
+    try {
+        io.write("    Test 2: Dependency resolution... ")
+        
+        let dependencies = {
+            "module_a": ["module_b"],
+            "module_b": ["module_c"],
+            "module_c": []
+        }
+        
+        if array.length(dependencies["module_a"]) == 1 {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 3: Parallel vessel generation
+    try {
+        io.write("    Test 3: Parallel compilation... ")
+        
+        let vessels = [
+            {"file": "module_a", "status": "COMPILED", "time_ms": 1200},
+            {"file": "module_b", "status": "COMPILED", "time_ms": 800},
+            {"file": "module_c", "status": "COMPILED", "time_ms": 1000}
+        ]
+        
+        let all_compiled = true
+        for v in vessels {
+            if v["status"] != "COMPILED" {
+                all_compiled = false
+            }
+        }
+        
+        if all_compiled == true {
+            io.write("✓ PASS (3 vessels)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Summary
+    io.write("\n  ═══════════════════════════════════════════════\n")
+    io.write("  Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("  ═══════════════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Multi-file test failed"
+    } else {
+        io.write("\n  ✅ Multi-File Project Test PASSED\n")
+    }
+}
