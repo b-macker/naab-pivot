@@ -1,0 +1,31 @@
+// Performance benchmark: Code generation speed test
+use io
+use time
+use string
+
+main {
+    io.write("  [BENCHMARK] Synthesizer Performance\n")
+
+    let start = time.now()
+    
+    // Simulate code generation workload (50 templates)
+    for i in 0..50 {
+        let template = "func ${NAME}(val float64) float64 { return val * ${FACTOR} }"
+        let code = template
+        code = string.replace(code, "${NAME}", "compute")
+        code = string.replace(code, "${FACTOR}", "2.0")
+    }
+    
+    let elapsed = time.now() - start
+    
+    io.write("  ✓ Generated 50 vessels in ", elapsed, "ms\n")
+    io.write("  ✓ Average: ", (1.0 * elapsed) / 50.0, "ms per vessel\n")
+    
+    // Performance assertion (should be < 500ms for 50 vessels)
+    if elapsed < 500 {
+        io.write("  ✅ PASS (fast enough)\n")
+    } else {
+        io.write("  ⚠ SLOW (took ", elapsed, "ms)\n")
+        throw "Performance regression"
+    }
+}

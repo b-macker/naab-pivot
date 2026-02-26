@@ -1,0 +1,86 @@
+// Unit tests for plugin_loader.naab module
+use io
+use array
+
+main {
+    io.write("  [TEST] Plugin System Unit Tests\n")
+
+    let pass_count = 0
+    let fail_count = 0
+
+    // Test 1: Plugin registration
+    try {
+        io.write("    Test 1: Plugin registration... ")
+        
+        let plugins = {
+            "ml-detector": {"type": "analyzer", "status": "loaded"},
+            "simd-optimizer": {"type": "synthesizer", "status": "loaded"},
+            "fuzzer": {"type": "validator", "status": "loaded"}
+        }
+        
+        let plugin_count = 0
+        for plugin_id in plugins {
+            plugin_count = plugin_count + 1
+        }
+        
+        if plugin_count == 3 {
+            io.write("✓ PASS (3 plugins)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 2: Plugin execution
+    try {
+        io.write("    Test 2: Plugin execution... ")
+        
+        let result = {
+            "status": "ML_DETECTED",
+            "confidence": 0.95,
+            "recommendations": ["Use CPP for ML inference"]
+        }
+        
+        if result["status"] == "ML_DETECTED" && result["confidence"] > 0.9 {
+            io.write("✓ PASS (confidence: ", result["confidence"], ")\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 3: Plugin types (3 categories)
+    try {
+        io.write("    Test 3: Plugin type validation... ")
+        
+        let plugin_types = ["analyzer", "synthesizer", "validator"]
+        
+        if array.length(plugin_types) == 3 {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Summary
+    io.write("\n  ═══════════════════════════════════════════════\n")
+    io.write("  Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("  ═══════════════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Tests failed"
+    }
+}

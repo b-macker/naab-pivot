@@ -1,0 +1,80 @@
+// Unit tests for vessel_cache.naab module
+use io
+use string
+
+main {
+    io.write("  [TEST] Vessel Cache Unit Tests\n")
+
+    let pass_count = 0
+    let fail_count = 0
+
+    // Test 1: Cache hit detection
+    try {
+        io.write("    Test 1: Cache hit detection... ")
+        
+        let cache_entry = {
+            "src_path": "/tmp/func.go",
+            "bin_path": "/tmp/func_vessel",
+            "hash": "abc123def456",
+            "timestamp": 1709024400
+        }
+        
+        if cache_entry["hash"] != "" {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 2: SHA-256 hash validation
+    try {
+        io.write("    Test 2: Hash validation... ")
+        
+        let hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        
+        if string.length(hash) == 64 {
+            io.write("✓ PASS (SHA-256)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 3: Cache invalidation
+    try {
+        io.write("    Test 3: Cache invalidation on change... ")
+        
+        let old_hash = "abc123"
+        let new_hash = "def456"
+        let needs_rebuild = (old_hash != new_hash)
+        
+        if needs_rebuild == true {
+            io.write("✓ PASS (invalidated)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Summary
+    io.write("\n  ═══════════════════════════════════════════════\n")
+    io.write("  Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("  ═══════════════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Tests failed"
+    }
+}

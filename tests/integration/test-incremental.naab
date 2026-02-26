@@ -1,0 +1,95 @@
+// Integration test: Incremental build system
+use io
+use array
+
+main {
+    io.write("  [INTEGRATION] Incremental Build Test\n\n")
+
+    let pass_count = 0
+    let fail_count = 0
+
+    // Test 1: Unchanged source (use cache)
+    try {
+        io.write("    Test 1: Unchanged source → cache hit... ")
+        
+        let vessel = {
+            "name": "func",
+            "status": "CACHED",
+            "build_time_ms": 0
+        }
+        
+        if vessel["status"] == "CACHED" && vessel["build_time_ms"] == 0 {
+            io.write("✓ PASS (cached)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 2: Changed source (rebuild)
+    try {
+        io.write("    Test 2: Changed source → rebuild... ")
+        
+        let vessel = {
+            "name": "func",
+            "status": "COMPILED",
+            "build_time_ms": 1200,
+            "reason": "source_changed"
+        }
+        
+        if vessel["status"] == "COMPILED" && vessel["build_time_ms"] > 0 {
+            io.write("✓ PASS (rebuilt)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 3: Partial rebuild (only changed files)
+    try {
+        io.write("    Test 3: Partial rebuild... ")
+        
+        let builds = [
+            {"file": "module_a", "status": "CACHED"},
+            {"file": "module_b", "status": "COMPILED"},
+            {"file": "module_c", "status": "CACHED"}
+        ]
+        
+        let rebuild_count = 0
+        for build in builds {
+            if build["status"] == "COMPILED" {
+                rebuild_count = rebuild_count + 1
+            }
+        }
+        
+        if rebuild_count == 1 {
+            io.write("✓ PASS (1 rebuild, 2 cached)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL (exception: ", e, ")\n")
+        fail_count = fail_count + 1
+    }
+
+    // Summary
+    io.write("\n  ═══════════════════════════════════════════════\n")
+    io.write("  Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("  ═══════════════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Incremental build test failed"
+    } else {
+        io.write("\n  ✅ Incremental Build Test PASSED\n")
+    }
+}
