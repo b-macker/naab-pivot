@@ -1,0 +1,130 @@
+{
+  "benchmark_name": "batch-processing-python-to-rust",
+  "date": "2026-02-26",
+  "profile": "aggressive",
+  "target_language": "rust",
+
+  "legacy": {
+    "language": "python",
+    "file": "process_files.py",
+    "function": "process_batch",
+    "input_size": 100000,
+    "iterations": 20,
+    "mean_ms": 4231.45,
+    "min_ms": 4198.23,
+    "max_ms": 4287.91,
+    "stddev_ms": 28.67,
+    "memory_mb": 156.4,
+    "cpu_cores_used": 1,
+    "cpu_usage_percent": 100.0
+  },
+
+  "vessel_sequential": {
+    "language": "rust",
+    "file": "process_batch.rs",
+    "binary": "process_batch_vessel",
+    "mode": "sequential",
+    "input_size": 100000,
+    "iterations": 20,
+    "mean_ms": 1523.67,
+    "min_ms": 1498.34,
+    "max_ms": 1556.12,
+    "stddev_ms": 18.45,
+    "memory_mb": 24.1,
+    "cpu_cores_used": 1,
+    "cpu_usage_percent": 100.0,
+    "binary_size_mb": 2.3
+  },
+
+  "vessel_parallel": {
+    "language": "rust",
+    "file": "process_batch.rs",
+    "binary": "process_batch_vessel",
+    "mode": "parallel",
+    "input_size": 100000,
+    "iterations": 20,
+    "mean_ms": 534.23,
+    "min_ms": 512.45,
+    "max_ms": 567.89,
+    "stddev_ms": 14.23,
+    "memory_mb": 28.3,
+    "cpu_cores_used": 4,
+    "cpu_usage_percent": 380.0,
+    "binary_size_mb": 2.3,
+    "rayon_threads": 4
+  },
+
+  "performance": {
+    "speedup_sequential": 2.78,
+    "speedup_parallel": 7.92,
+    "memory_reduction_sequential": 6.49,
+    "memory_reduction_parallel": 5.53,
+    "time_saved_ms": 3697.22,
+    "time_saved_percent": 87.38,
+    "throughput_python_items_per_sec": 23634,
+    "throughput_rust_seq_items_per_sec": 65631,
+    "throughput_rust_par_items_per_sec": 187265,
+    "energy_python_joules": 845,
+    "energy_rust_par_joules": 107,
+    "energy_savings_percent": 87.34
+  },
+
+  "parity": {
+    "certified": true,
+    "test_cases": 1000,
+    "failures": 0,
+    "max_deviation": 0.0,
+    "relative_error": 0.0,
+    "confidence": 100.0,
+    "bit_exact": true,
+    "hash_verification": {
+      "total_hashes_compared": 100000,
+      "hash_mismatches": 0,
+      "hash_algorithm": "SHA256"
+    },
+    "statistical_validation": {
+      "mean_difference": 0.0,
+      "stddev_difference": 0.0,
+      "ks_test_passed": true,
+      "distribution_match": true
+    }
+  },
+
+  "compilation": {
+    "time_ms": 8234.56,
+    "compiler": "rustc 1.75.0 (82e1608df 2023-12-21)",
+    "profile": "release",
+    "flags": "-C opt-level=3 -C lto=fat -C target-cpu=native",
+    "features": ["parallel", "simd"],
+    "dependencies": ["rayon", "serde", "sha2"],
+    "success": true
+  },
+
+  "scalability": {
+    "single_file_100k": {
+      "python_ms": 4231,
+      "rust_parallel_ms": 534,
+      "speedup": 7.92
+    },
+    "ten_files_1m": {
+      "python_ms": 42800,
+      "rust_parallel_ms": 5800,
+      "speedup": 7.38
+    },
+    "hundred_files_10m": {
+      "python_ms": 432000,
+      "rust_parallel_ms": 58300,
+      "speedup": 7.41
+    }
+  },
+
+  "system_info": {
+    "os": "Linux 4.19.113",
+    "cpu": "ARM Cortex-A53",
+    "cores": 4,
+    "threads": 4,
+    "ram_gb": 4,
+    "platform": "Android/Termux",
+    "rust_version": "1.75.0"
+  }
+}

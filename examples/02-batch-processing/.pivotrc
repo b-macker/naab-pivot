@@ -1,0 +1,30 @@
+{
+  "project_name": "batch-processing-example",
+  "profile": "aggressive",
+  "target_languages": ["rust"],
+  "preferred_target": "rust",
+  "validate": true,
+  "benchmark_iterations": 20,
+  "parity_tolerance": 0.0,
+
+  "optimization": {
+    "parallel_enabled": true,
+    "parallel_threshold": 5,
+    "simd_enabled": true,
+    "lto_enabled": true,
+    "max_workers": 4
+  },
+
+  "rust_specific": {
+    "rayon_workers": 4,
+    "cargo_features": ["parallel", "simd"],
+    "opt_level": 3,
+    "lto": "fat"
+  },
+
+  "validation": {
+    "hash_verification": true,
+    "bit_exact_required": true,
+    "statistical_validation": true
+  }
+}
