@@ -1,0 +1,34 @@
+{
+  "project_name": "scientific-nbody-simulation",
+  "profile": "experimental",
+  "target_languages": ["julia"],
+  "preferred_target": "julia",
+  "validate": true,
+  "benchmark_iterations": 10,
+
+  "optimization": {
+    "simd_enabled": true,
+    "parallel_enabled": true,
+    "gpu_enabled": true,
+    "vectorization": true,
+    "inlining_aggressive": true,
+    "fast_math": true,
+    "loop_unrolling": true
+  },
+
+  "julia_specific": {
+    "opt_level": 3,
+    "threads": 8,
+    "simd": "avx2",
+    "gpu_backend": "CUDA",
+    "inline_threshold": 500,
+    "check_bounds": false,
+    "fast_math": true,
+    "packages": ["StaticArrays", "LoopVectorization", "CUDA"]
+  },
+
+  "workload_type": "scientific_computing",
+  "algorithm": "n_body_simulation",
+  "concurrency_model": "data_parallel",
+  "numerical_precision": "float64"
+}
