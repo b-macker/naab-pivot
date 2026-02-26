@@ -1,0 +1,50 @@
+{
+  "project_name": "enterprise-erp-migration",
+  "migration_mode": true,
+  "strategy": "incremental_hotspot_first",
+
+  "target_languages": ["go", "rust", "cpp"],
+  "preferred_targets": {
+    "api_endpoints": "go",
+    "compute_intensive": "rust",
+    "data_processing": "cpp"
+  },
+
+  "analysis": {
+    "profile_production": true,
+    "min_runtime_percent": 5.0,
+    "min_complexity": 30,
+    "prioritization": "runtime_weighted_complexity"
+  },
+
+  "integration": {
+    "method": "ffi",
+    "ffi_frameworks": {
+      "rust": "pyo3",
+      "go": "cgo",
+      "cpp": "pybind11"
+    },
+    "fallback_method": "microservice"
+  },
+
+  "validation": {
+    "parity_required": true,
+    "tolerance": 0.0001,
+    "test_traffic_replay": true,
+    "canary_deployment": true
+  },
+
+  "rollout": {
+    "feature_flags": true,
+    "canary_percent": [1, 10, 50, 100],
+    "rollback_on_error_rate": 0.001,
+    "monitoring_window_hours": 24
+  },
+
+  "reporting": {
+    "track_progress": true,
+    "generate_dashboards": true,
+    "cost_tracking": true,
+    "weekly_reports": true
+  }
+}

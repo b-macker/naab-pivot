@@ -1,0 +1,382 @@
+{
+  "project_name": "enterprise-erp-system",
+  "migration_strategy": "incremental_hotspot_first",
+  "total_files": 487,
+  "total_lines_of_code": 156234,
+  "languages": {
+    "python": {
+      "files": 423,
+      "lines": 142156,
+      "percent": 91.0
+    },
+    "javascript": {
+      "files": 52,
+      "lines": 12345,
+      "percent": 7.9
+    },
+    "sql": {
+      "files": 12,
+      "lines": 1733,
+      "percent": 1.1
+    }
+  },
+
+  "analysis_results": {
+    "hotspots_identified": 23,
+    "high_priority": 8,
+    "medium_priority": 11,
+    "low_priority": 4,
+    "estimated_total_speedup": "4.2x",
+    "estimated_cost_savings_yearly_usd": 245000
+  },
+
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Critical Hotspots",
+      "duration_weeks": 6,
+      "description": "Optimize the most critical performance bottlenecks",
+      "risk": "low",
+      "effort": "medium",
+      "impact": "high",
+      "candidates": [
+        {
+          "file": "core/reports/sales_aggregator.py",
+          "function": "aggregate_daily_sales",
+          "complexity": 87,
+          "runtime_percent": 23.4,
+          "target": "go",
+          "estimated_speedup": "12x",
+          "dependencies": ["database.py", "cache.py"],
+          "test_coverage": 0.89,
+          "priority_score": 95
+        },
+        {
+          "file": "core/inventory/stock_calculator.py",
+          "function": "calculate_reorder_points",
+          "complexity": 65,
+          "runtime_percent": 18.7,
+          "target": "rust",
+          "estimated_speedup": "8x",
+          "dependencies": ["database.py", "forecasting.py"],
+          "test_coverage": 0.92,
+          "priority_score": 88
+        },
+        {
+          "file": "core/pricing/discount_engine.py",
+          "function": "apply_complex_discounts",
+          "complexity": 52,
+          "runtime_percent": 12.3,
+          "target": "cpp",
+          "estimated_speedup": "6x",
+          "dependencies": ["rules_engine.py"],
+          "test_coverage": 0.85,
+          "priority_score": 75
+        }
+      ],
+      "success_criteria": {
+        "parity_validation": "100% pass rate",
+        "performance_improvement": "8x average speedup",
+        "no_regressions": "zero production incidents",
+        "test_coverage": "maintain >85%"
+      }
+    },
+    {
+      "phase": 2,
+      "name": "High-Traffic Endpoints",
+      "duration_weeks": 8,
+      "description": "Optimize API endpoints with highest traffic",
+      "risk": "medium",
+      "effort": "high",
+      "impact": "high",
+      "candidates": [
+        {
+          "file": "api/v2/orders.py",
+          "function": "process_order_request",
+          "complexity": 45,
+          "requests_per_day": 2400000,
+          "target": "go",
+          "estimated_speedup": "7x",
+          "priority_score": 82
+        },
+        {
+          "file": "api/v2/customers.py",
+          "function": "search_customers",
+          "complexity": 38,
+          "requests_per_day": 1800000,
+          "target": "go",
+          "estimated_speedup": "5x",
+          "priority_score": 71
+        },
+        {
+          "file": "api/v2/products.py",
+          "function": "get_product_recommendations",
+          "complexity": 72,
+          "requests_per_day": 3200000,
+          "target": "rust",
+          "estimated_speedup": "9x",
+          "priority_score": 85
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Batch Processing Jobs",
+      "duration_weeks": 10,
+      "description": "Optimize nightly batch jobs and data pipelines",
+      "risk": "low",
+      "effort": "high",
+      "impact": "medium",
+      "candidates": [
+        {
+          "file": "jobs/nightly/etl_warehouse.py",
+          "function": "transform_sales_data",
+          "complexity": 98,
+          "runtime_hours": 4.5,
+          "target": "cpp",
+          "estimated_speedup": "10x",
+          "priority_score": 78
+        },
+        {
+          "file": "jobs/hourly/cache_warmup.py",
+          "function": "rebuild_product_cache",
+          "complexity": 41,
+          "runtime_hours": 0.8,
+          "target": "go",
+          "estimated_speedup": "6x",
+          "priority_score": 62
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Business Logic Libraries",
+      "duration_weeks": 12,
+      "description": "Convert shared business logic libraries",
+      "risk": "high",
+      "effort": "very_high",
+      "impact": "medium",
+      "candidates": [
+        {
+          "file": "lib/tax_calculator.py",
+          "complexity": 156,
+          "used_by_modules": 47,
+          "target": "rust",
+          "estimated_speedup": "4x",
+          "priority_score": 68
+        },
+        {
+          "file": "lib/shipping_calculator.py",
+          "complexity": 89,
+          "used_by_modules": 32,
+          "target": "go",
+          "estimated_speedup": "5x",
+          "priority_score": 64
+        }
+      ]
+    }
+  ],
+
+  "integration_strategy": {
+    "approach": "foreign_function_interface",
+    "methods": [
+      {
+        "name": "Python C Extension",
+        "for_targets": ["cpp"],
+        "overhead_percent": 2,
+        "complexity": "medium"
+      },
+      {
+        "name": "PyO3 (Rust)",
+        "for_targets": ["rust"],
+        "overhead_percent": 1,
+        "complexity": "low"
+      },
+      {
+        "name": "CGo",
+        "for_targets": ["go"],
+        "overhead_percent": 5,
+        "complexity": "medium"
+      },
+      {
+        "name": "Microservice",
+        "for_targets": ["all"],
+        "overhead_percent": 15,
+        "complexity": "high",
+        "note": "For loosely coupled components"
+      }
+    ]
+  },
+
+  "testing_strategy": {
+    "validation_approach": "parallel_execution",
+    "steps": [
+      "Generate test inputs from production traffic",
+      "Execute both legacy and vessel implementations",
+      "Compare outputs with statistical validation",
+      "Run load tests to verify performance gains",
+      "Monitor error rates in production with canary deployment"
+    ],
+    "tools": [
+      "pytest (unit tests)",
+      "locust (load testing)",
+      "datadog (monitoring)",
+      "parity_validator (NAAb Pivot)"
+    ]
+  },
+
+  "rollout_strategy": {
+    "deployment_method": "canary_with_feature_flags",
+    "stages": [
+      {
+        "name": "Internal testing",
+        "traffic_percent": 0,
+        "duration_days": 3,
+        "success_criteria": "All tests pass"
+      },
+      {
+        "name": "Canary (1%)",
+        "traffic_percent": 1,
+        "duration_days": 2,
+        "success_criteria": "Error rate < 0.01%, latency improvement visible"
+      },
+      {
+        "name": "Early adopters (10%)",
+        "traffic_percent": 10,
+        "duration_days": 3,
+        "success_criteria": "No increase in error rate"
+      },
+      {
+        "name": "Half rollout (50%)",
+        "traffic_percent": 50,
+        "duration_days": 5,
+        "success_criteria": "Performance gains confirmed, cost savings visible"
+      },
+      {
+        "name": "Full rollout (100%)",
+        "traffic_percent": 100,
+        "duration_days": 7,
+        "success_criteria": "Stable operation, legacy code deprecated"
+      }
+    ],
+    "rollback_plan": {
+      "trigger": "Error rate > 0.1% OR latency > 2x baseline",
+      "action": "Immediate feature flag disable",
+      "recovery_time_minutes": 5
+    }
+  },
+
+  "timeline": {
+    "total_duration_weeks": 36,
+    "start_date": "2026-03-01",
+    "end_date": "2026-11-15",
+    "milestones": [
+      {
+        "date": "2026-04-15",
+        "milestone": "Phase 1 complete (3 hotspots optimized)",
+        "expected_speedup": "2.1x overall"
+      },
+      {
+        "date": "2026-06-15",
+        "milestone": "Phase 2 complete (6 API endpoints optimized)",
+        "expected_speedup": "3.2x overall"
+      },
+      {
+        "date": "2026-09-01",
+        "milestone": "Phase 3 complete (batch jobs optimized)",
+        "expected_speedup": "3.8x overall"
+      },
+      {
+        "date": "2026-11-15",
+        "milestone": "Phase 4 complete (libraries converted)",
+        "expected_speedup": "4.2x overall"
+      }
+    ]
+  },
+
+  "risk_mitigation": {
+    "risks": [
+      {
+        "risk": "Performance regression in edge cases",
+        "severity": "high",
+        "mitigation": "Comprehensive test suite with production traffic replay"
+      },
+      {
+        "risk": "Increased deployment complexity",
+        "severity": "medium",
+        "mitigation": "Automated CI/CD pipeline with Docker containers"
+      },
+      {
+        "risk": "Team knowledge gap (compiled languages)",
+        "severity": "medium",
+        "mitigation": "Training program + code reviews + pair programming"
+      },
+      {
+        "risk": "Integration bugs (FFI boundary)",
+        "severity": "high",
+        "mitigation": "Extensive integration tests + gradual rollout"
+      },
+      {
+        "risk": "Maintenance burden (two codebases)",
+        "severity": "low",
+        "mitigation": "Phase out legacy code after successful migration"
+      }
+    ]
+  },
+
+  "resource_allocation": {
+    "team_size": 5,
+    "roles": [
+      {
+        "role": "Tech Lead",
+        "count": 1,
+        "time_percent": 100
+      },
+      {
+        "role": "Senior Engineers",
+        "count": 2,
+        "time_percent": 100
+      },
+      {
+        "role": "Mid-level Engineers",
+        "count": 2,
+        "time_percent": 80
+      },
+      {
+        "role": "QA Engineer",
+        "count": 1,
+        "time_percent": 50
+      }
+    ],
+    "estimated_cost_usd": 485000,
+    "roi_months": 2.0,
+    "yearly_savings_usd": 245000
+  },
+
+  "monitoring_and_tracking": {
+    "metrics": [
+      "Execution time (p50, p95, p99)",
+      "Throughput (requests/sec)",
+      "Error rate (%)",
+      "Memory usage (MB)",
+      "CPU utilization (%)",
+      "Cost per request ($)",
+      "Test coverage (%)",
+      "Lines of code migrated"
+    ],
+    "dashboards": [
+      "Grafana: Performance trends",
+      "Datadog: Error tracking",
+      "GitHub: Migration progress",
+      "Custom: Cost savings calculator"
+    ]
+  },
+
+  "success_criteria": {
+    "performance": "4x average speedup across all phases",
+    "reliability": "Zero production incidents caused by migration",
+    "cost": "ROI achieved within 2 months",
+    "quality": "Test coverage maintained >85%",
+    "team": "All engineers comfortable with new stack"
+  }
+}
