@@ -1,0 +1,7 @@
+{
+  "project_name": "polyglot-microservices",
+  "profile": "balanced",
+  "targets": ["python", "rust", "go"],
+  "output_dir": "./vessels",
+  "description": "Polyglot microservices architecture with Python API gateway, Rust pricing engine, and Go inventory service"
+}
