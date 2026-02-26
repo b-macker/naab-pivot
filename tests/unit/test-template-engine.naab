@@ -12,10 +12,10 @@ main {
     // Test 1: Variable substitution
     try {
         io.write("    Test 1: Variable substitution... ")
-        
-        let template = "func ${FUNCTION_NAME}(val float64) float64 { return val }"
-        let result = string.replace(template, "${FUNCTION_NAME}", "compute")
-        
+
+        let template = "func __FUNCTION_NAME__(val float64) float64 { return val }"
+        let result = string.replace(template, "__FUNCTION_NAME__", "compute")
+
         if string.index_of(result, "compute") != -1 {
             io.write("✓ PASS\n")
             pass_count = pass_count + 1
@@ -31,12 +31,12 @@ main {
     // Test 2: Multiple variable substitution
     try {
         io.write("    Test 2: Multiple variables... ")
-        
-        let template = "func ${NAME}(n int) { for i := 0; i < ${ITERATIONS}; i++ {} }"
+
+        let template = "func __NAME__(n int) { for i := 0; i < __ITERATIONS__; i++ {} }"
         let result = template
-        result = string.replace(result, "${NAME}", "loop")
-        result = string.replace(result, "${ITERATIONS}", "100")
-        
+        result = string.replace(result, "__NAME__", "loop")
+        result = string.replace(result, "__ITERATIONS__", "100")
+
         if string.index_of(result, "loop") != -1 && string.index_of(result, "100") != -1 {
             io.write("✓ PASS\n")
             pass_count = pass_count + 1

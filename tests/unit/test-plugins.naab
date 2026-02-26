@@ -11,18 +11,15 @@ main {
     // Test 1: Plugin registration
     try {
         io.write("    Test 1: Plugin registration... ")
-        
-        let plugins = {
-            "ml-detector": {"type": "analyzer", "status": "loaded"},
-            "simd-optimizer": {"type": "synthesizer", "status": "loaded"},
-            "fuzzer": {"type": "validator", "status": "loaded"}
-        }
-        
-        let plugin_count = 0
-        for plugin_id in plugins {
-            plugin_count = plugin_count + 1
-        }
-        
+
+        let plugins = [
+            {"id": "ml-detector", "type": "analyzer", "status": "loaded"},
+            {"id": "simd-optimizer", "type": "synthesizer", "status": "loaded"},
+            {"id": "fuzzer", "type": "validator", "status": "loaded"}
+        ]
+
+        let plugin_count = array.length(plugins)
+
         if plugin_count == 3 {
             io.write("✓ PASS (3 plugins)\n")
             pass_count = pass_count + 1

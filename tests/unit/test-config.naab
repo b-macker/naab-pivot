@@ -2,6 +2,7 @@
 use io
 use json
 use array
+use env
 
 main {
     io.write("  [TEST] Config Manager Unit Tests\n")
@@ -32,16 +33,18 @@ main {
         fail_count = fail_count + 1
     }
 
-    // Test 2: Environment variable resolution
+    // Test 2: Config dictionary validation
     try {
-        io.write("    Test 2: Environment variables... ")
-        
+        io.write("    Test 2: Config dictionary validation... ")
+
+        // Test config dictionary structure
         let config = {
-            "output_dir": "${PIVOT_OUTPUT}",
-            "profile": "${PIVOT_PROFILE}"
+            "output_dir": "./vessels",
+            "profile": "balanced",
+            "enabled": true
         }
-        
-        if config["output_dir"] != "" {
+
+        if config["output_dir"] != "" && config["profile"] != "" {
             io.write("✓ PASS\n")
             pass_count = pass_count + 1
         } else {

@@ -10,10 +10,10 @@ main {
     
     // Simulate code generation workload (50 templates)
     for i in 0..50 {
-        let template = "func ${NAME}(val float64) float64 { return val * ${FACTOR} }"
+        let template = "func __NAME__(val float64) float64 { return val * __FACTOR__ }"
         let code = template
-        code = string.replace(code, "${NAME}", "compute")
-        code = string.replace(code, "${FACTOR}", "2.0")
+        code = string.replace(code, "__NAME__", "compute")
+        code = string.replace(code, "__FACTOR__", "2.0")
     }
     
     let elapsed = time.now() - start
