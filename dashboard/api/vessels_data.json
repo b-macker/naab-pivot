@@ -1,0 +1,32 @@
+{
+  "vessels": [
+    {
+      "name": "calculate_commission",
+      "target": "Rust",
+      "size": 1847296,
+      "compiled_at": "2 hours ago",
+      "speedup": 12.5
+    },
+    {
+      "name": "process_batch",
+      "target": "Go",
+      "size": 2123456,
+      "compiled_at": "1 day ago",
+      "speedup": 8.3
+    },
+    {
+      "name": "heavy_computation",
+      "target": "C++",
+      "size": 1654321,
+      "compiled_at": "3 days ago",
+      "speedup": 15.2
+    },
+    {
+      "name": "data_transform",
+      "target": "Rust",
+      "size": 1923847,
+      "compiled_at": "1 week ago",
+      "speedup": 6.7
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "projects": [
+    {
+      "name": "Example Project 1",
+      "path": "/workspace/example-1",
+      "vessels": 5,
+      "last_evolution": "2 hours ago",
+      "avg_speedup": 3.5
+    },
+    {
+      "name": "Example Project 2",
+      "path": "/workspace/example-2",
+      "vessels": 8,
+      "last_evolution": "1 day ago",
+      "avg_speedup": 10.2
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "benchmarks": [
+    { "date": "2024-02-20", "avg_speedup": 3.2 },
+    { "date": "2024-02-21", "avg_speedup": 4.1 },
+    { "date": "2024-02-22", "avg_speedup": 5.3 },
+    { "date": "2024-02-23", "avg_speedup": 6.2 },
+    { "date": "2024-02-24", "avg_speedup": 7.8 },
+    { "date": "2024-02-25", "avg_speedup": 8.5 },
+    { "date": "2024-02-26", "avg_speedup": 9.2 }
+  ]
+}
