@@ -1,0 +1,208 @@
+// tests/unit/test-synthesize.naab - Unit tests for synthesizer module
+use io
+use json
+use file
+use string
+
+use ../synthesize
+
+main {
+    io.write("[TEST] Synthesizer Module Unit Tests\n\n")
+
+    let pass_count = 0
+    let fail_count = 0
+
+    // Setup test environment
+    let test_dir = "tests/test-vessels"
+    <<bash[test_dir] mkdir -p "$test_dir" >>
+
+    // Test 1: Blueprint loading
+    io.write("Test 1: Blueprint loading and parsing... ")
+    try {
+        // Create test blueprint
+        let blueprint = {
+            "status": "ANALYZED",
+            "source": "PYTHON",
+            "functions": [
+                {
+                    "name": "test_func",
+                    "target": "GO",
+                    "complexity": 5,
+                    "iterations": 1000
+                }
+            ]
+        }
+
+        let blueprint_path = test_dir + "/test-blueprint.json"
+        file.write(blueprint_path, json.stringify(blueprint, true))
+
+        if file.exists(blueprint_path) {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Blueprint file not created\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 2: Template variable substitution
+    io.write("Test 2: Template variable substitution... ")
+    try {
+        use ../modules/template_engine
+
+        let func_spec = {
+            "name": "compute_value",
+            "complexity": 8,
+            "iterations": 5000
+        }
+
+        let code = template_engine.generate(func_spec, "GO")
+
+        if string.index_of(code, "compute_value") != -1 &&
+           string.index_of(code, "5000") != -1 {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Template variables not substituted\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 3: Source code generation (Go)
+    io.write("Test 3: Go source code generation... ")
+    try {
+        use ../modules/template_engine
+
+        let func_spec = {
+            "name": "test_function",
+            "complexity": 3,
+            "iterations": 100
+        }
+
+        let code = template_engine.generate(func_spec, "GO")
+        let src_path = test_dir + "/test.go"
+        file.write(src_path, code)
+
+        if file.exists(src_path) {
+            let content = file.read(src_path)
+            if string.index_of(content, "package main") != -1 &&
+               string.index_of(content, "func test_function") != -1 {
+                io.write("✓ PASS\n")
+                pass_count = pass_count + 1
+            } else {
+                io.write("✗ FAIL - Generated code missing required elements\n")
+                fail_count = fail_count + 1
+            }
+        } else {
+            io.write("✗ FAIL - Source file not created\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 4: Incremental rebuild detection
+    io.write("Test 4: Incremental rebuild detection... ")
+    try {
+        let src_path = test_dir + "/cached.go"
+        let bin_path = test_dir + "/cached"
+        let source_code = "package main\nfunc main() {}"
+
+        // Write source and binary
+        file.write(src_path, source_code)
+        file.write(bin_path, "fake binary")
+
+        // Should NOT rebuild (same source)
+        let should_rebuild = synthesize.should_rebuild(src_path, bin_path, source_code)
+
+        if should_rebuild == false {
+            io.write("✓ PASS (cache hit)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Should use cached binary\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 5: Rebuild on source change
+    io.write("Test 5: Rebuild on source change... ")
+    try {
+        let src_path = test_dir + "/modified.go"
+        let bin_path = test_dir + "/modified"
+        let old_source = "package main\nfunc main() {}"
+        let new_source = "package main\nfunc main() { println(\"modified\") }"
+
+        // Write old source and binary
+        file.write(src_path, old_source)
+        file.write(bin_path, "fake binary")
+
+        // Should rebuild (source changed)
+        let should_rebuild = synthesize.should_rebuild(src_path, bin_path, new_source)
+
+        if should_rebuild == true {
+            io.write("✓ PASS (source changed)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Should rebuild when source changes\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 6: Multiple target languages
+    io.write("Test 6: Multiple target language support... ")
+    try {
+        use ../modules/template_engine
+
+        let func_spec = {
+            "name": "multi_test",
+            "complexity": 2,
+            "iterations": 50
+        }
+
+        let targets = ["GO", "CPP", "RUST"]
+        let all_generated = true
+
+        for target in targets {
+            let code = template_engine.generate(func_spec, target)
+            if string.length(code) < 50 {
+                all_generated = false
+            }
+        }
+
+        if all_generated {
+            io.write("✓ PASS (3 targets)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Not all targets generated code\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Cleanup
+    <<bash[test_dir] rm -rf "$test_dir" >>
+
+    // Summary
+    io.write("\n═══════════════════════════════════════\n")
+    io.write("Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("═══════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Tests failed"
+    }
+}

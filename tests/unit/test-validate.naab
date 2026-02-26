@@ -1,0 +1,149 @@
+// tests/unit/test-validate.naab - Unit tests for validator module
+use io
+use json
+use array
+use math
+
+use ../validate
+
+main {
+    io.write("[TEST] Validator Module Unit Tests\n\n")
+
+    let pass_count = 0
+    let fail_count = 0
+
+    // Test 1: Exact parity (identical results)
+    io.write("Test 1: Exact parity validation... ")
+    try {
+        let legacy_results = [1.0, 2.0, 3.0, 4.0, 5.0]
+        let vessel_results = [1.0, 2.0, 3.0, 4.0, 5.0]
+
+        let result = validate.validate_parity_arrays(legacy_results, vessel_results, 0.001)
+
+        if result["certified"] == true && result["failure_count"] == 0 {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Expected certification\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 2: Within tolerance
+    io.write("Test 2: Within tolerance validation... ")
+    try {
+        let legacy_results = [1.0, 2.0, 3.0]
+        let vessel_results = [1.0001, 2.0001, 3.0001]  // 0.01% deviation
+
+        let result = validate.validate_parity_arrays(legacy_results, vessel_results, 0.001)
+
+        if result["certified"] == true {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Should certify within tolerance\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 3: Outside tolerance (failure case)
+    io.write("Test 3: Outside tolerance rejection... ")
+    try {
+        let legacy_results = [1.0, 2.0, 3.0]
+        let vessel_results = [1.1, 2.1, 3.1]  // 10% deviation
+
+        let result = validate.validate_parity_arrays(legacy_results, vessel_results, 0.001)
+
+        if result["certified"] == false && result["failure_count"] > 0 {
+            io.write("✓ PASS (correctly rejected)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Should reject large deviations\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 4: Statistical analysis
+    io.write("Test 4: Statistical analysis computation... ")
+    try {
+        use ../modules/parity_engine
+
+        let differences = [0.001, 0.002, 0.001, 0.003, 0.001]
+        let stats = parity_engine.compute_statistical_analysis(differences)
+
+        if stats["mean"] != null &&
+           stats["stddev"] != null &&
+           stats["sample_size"] == 5 {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Statistics not computed correctly\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 5: Count mismatch detection
+    io.write("Test 5: Result count mismatch detection... ")
+    try {
+        let legacy_results = [1.0, 2.0, 3.0]
+        let vessel_results = [1.0, 2.0]  // Missing one result
+
+        let result = validate.validate_parity_arrays(legacy_results, vessel_results, 0.001)
+
+        if result["certified"] == false && result["error"] != null {
+            io.write("✓ PASS (mismatch detected)\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Should detect count mismatch\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Test 6: Confidence calculation
+    io.write("Test 6: Confidence level calculation... ")
+    try {
+        use ../modules/parity_engine
+
+        // Perfect match = 99.99% confidence
+        let confidence_perfect = parity_engine.calculate_confidence([], 100)
+
+        // 1% failure = 99% confidence
+        let failures_1pct = [1]
+        let confidence_1pct = parity_engine.calculate_confidence(failures_1pct, 100)
+
+        if confidence_perfect > 99.0 && confidence_1pct > 98.0 {
+            io.write("✓ PASS\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Confidence calculation incorrect\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Summary
+    io.write("\n═══════════════════════════════════════\n")
+    io.write("Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("═══════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Tests failed"
+    }
+}

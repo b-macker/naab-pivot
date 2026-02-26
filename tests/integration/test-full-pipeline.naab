@@ -1,0 +1,228 @@
+// tests/integration/test-full-pipeline.naab - Full pipeline integration test
+// Tests: analyze → synthesize → validate → benchmark
+
+use io
+use json
+use file
+use string
+use array
+
+main {
+    io.write("[INTEGRATION] Full Pipeline Test\n\n")
+
+    let test_dir = "tests/integration-workspace"
+    let pass_count = 0
+    let fail_count = 0
+
+    // Setup
+    io.write("Setup: Creating test workspace...\n")
+    <<bash[test_dir] mkdir -p "$test_dir/vessels" >>
+
+    // Create test Python file
+    let test_python = "
+def compute_value(n):
+    result = 0.0
+    for i in range(n):
+        result += i * 0.5
+    return result
+
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) < 2:
+        print('READY')
+    else:
+        val = float(sys.argv[1])
+        print(f'{compute_value(int(val)):.15f}')
+"
+
+    file.write(test_dir + "/test_code.py", test_python)
+    io.write("  ✓ Test file created\n\n")
+
+    // STEP 1: Analyze
+    io.write("Step 1: Analyzing test_code.py... ")
+    try {
+        use ../analyze
+        let analysis = analyze.analyze_file(test_dir + "/test_code.py")
+
+        if analysis["status"] == "ANALYZED" &&
+           analysis["source"] == "PYTHON" &&
+           array.length(analysis["functions"]) > 0 {
+            io.write("✓ PASS\n")
+            io.write("  Functions found: ", array.length(analysis["functions"]), "\n")
+
+            // Save blueprint
+            let blueprint_path = test_dir + "/blueprint.json"
+            file.write(blueprint_path, json.stringify(analysis, true))
+            io.write("  Blueprint saved: ", blueprint_path, "\n\n")
+
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // STEP 2: Synthesize
+    io.write("Step 2: Synthesizing vessel... ")
+    try {
+        use env
+        env.set_var("PIVOT_OUTPUT", test_dir + "/vessels/")
+
+        use ../synthesize
+        let blueprint_json = file.read(test_dir + "/blueprint.json")
+        let blueprint = json.parse(blueprint_json)
+
+        // Generate Go vessel (simpler than full synthesis)
+        use ../modules/template_engine
+
+        let func = blueprint["functions"][0]
+        let go_code = template_engine.generate(func, "GO")
+        let go_src = test_dir + "/vessels/compute_value.go"
+
+        file.write(go_src, go_code)
+
+        if file.exists(go_src) {
+            io.write("✓ PASS\n")
+            io.write("  Vessel source: ", go_src, "\n\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Vessel source not created\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // STEP 3: Compile (if Go available)
+    io.write("Step 3: Compiling vessel... ")
+    try {
+        let go_src = test_dir + "/vessels/compute_value.go"
+        let go_bin = test_dir + "/vessels/compute_value"
+
+        let compile_output = <<bash[go_src, go_bin]
+        if command -v go >/dev/null 2>&1; then
+            go build -o "$go_bin" "$go_src" 2>&1 && echo "SUCCESS" || echo "FAILED"
+        else
+            echo "SKIP"
+        fi
+        >>
+
+        if string.index_of(compile_output, "SUCCESS") != -1 {
+            io.write("✓ PASS\n")
+            io.write("  Vessel binary: ", go_bin, "\n\n")
+            pass_count = pass_count + 1
+        } else if string.index_of(compile_output, "SKIP") != -1 {
+            io.write("⊘ SKIP (Go not available)\n\n")
+        } else {
+            io.write("✗ FAIL - Compilation failed\n")
+            io.write("  ", compile_output, "\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // STEP 4: Validate (if compiled)
+    io.write("Step 4: Validating parity... ")
+    try {
+        let go_bin = test_dir + "/vessels/compute_value"
+        let py_src = test_dir + "/test_code.py"
+
+        if file.exists(go_bin) {
+            // Run both implementations with test input
+            let test_input = "100"
+
+            let py_output = <<bash[py_src, test_input]
+            python3 "$py_src" "$test_input" 2>/dev/null || echo "ERROR"
+            >>
+
+            let go_output = <<bash[go_bin, test_input]
+            "$go_bin" "$test_input" 2>/dev/null || echo "ERROR"
+            >>
+
+            if string.index_of(py_output, "ERROR") == -1 &&
+               string.index_of(go_output, "ERROR") == -1 {
+
+                let py_val = json.parse(string.trim(py_output))
+                let go_val = json.parse(string.trim(go_output))
+
+                let diff = abs(py_val - go_val)
+                let rel_err = diff / abs(py_val)
+
+                if rel_err < 0.001 {
+                    io.write("✓ PASS\n")
+                    io.write("  Python: ", py_val, "\n")
+                    io.write("  Go: ", go_val, "\n")
+                    io.write("  Relative error: ", rel_err, "\n\n")
+                    pass_count = pass_count + 1
+                } else {
+                    io.write("✗ FAIL - Results differ\n")
+                    fail_count = fail_count + 1
+                }
+            } else {
+                io.write("✗ FAIL - Execution error\n")
+                fail_count = fail_count + 1
+            }
+        } else {
+            io.write("⊘ SKIP (binary not available)\n\n")
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // STEP 5: Config integration
+    io.write("Step 5: Config system integration... ")
+    try {
+        use ../modules/config_manager
+
+        // Create project config
+        let project_config = {
+            "profile": "balanced",
+            "output": test_dir + "/vessels",
+            "validate": true
+        }
+
+        file.write(test_dir + "/.pivotrc", json.stringify(project_config, true))
+
+        let loaded_config = config_manager.load_project_config(test_dir)
+
+        if loaded_config["profile"] == "balanced" {
+            io.write("✓ PASS\n\n")
+            pass_count = pass_count + 1
+        } else {
+            io.write("✗ FAIL - Config not loaded\n")
+            fail_count = fail_count + 1
+        }
+    } catch (e) {
+        io.write("✗ FAIL - Exception: ", e, "\n")
+        fail_count = fail_count + 1
+    }
+
+    // Cleanup
+    io.write("Cleanup: Removing test workspace... ")
+    <<bash[test_dir] rm -rf "$test_dir" >>
+    io.write("✓ Done\n\n")
+
+    // Summary
+    io.write("═══════════════════════════════════════\n")
+    io.write("Full Pipeline Integration Test\n")
+    io.write("Total: ", (pass_count + fail_count), " | Pass: ", pass_count, " | Fail: ", fail_count, "\n")
+    io.write("═══════════════════════════════════════\n")
+
+    if fail_count > 0 {
+        throw "Integration test failed"
+    }
+}
+
+fn abs(x) {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
