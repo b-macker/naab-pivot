@@ -1,0 +1,27 @@
+{
+  "project_name": "web-backend-api",
+  "profile": "balanced",
+  "target_languages": ["go"],
+  "preferred_target": "go",
+  "validate": true,
+  "benchmark_iterations": 100,
+
+  "optimization": {
+    "goroutine_pool": true,
+    "json_pool": true,
+    "http2_enabled": true,
+    "connection_pooling": true,
+    "zero_alloc_json": true
+  },
+
+  "go_specific": {
+    "max_goroutines": 100000,
+    "read_timeout_seconds": 5,
+    "write_timeout_seconds": 10,
+    "idle_timeout_seconds": 120,
+    "max_header_bytes": 1048576
+  },
+
+  "service_type": "web_api",
+  "concurrency_model": "goroutines"
+}
