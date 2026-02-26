@@ -1,0 +1,33 @@
+{
+  "project_name": "crypto-mining-optimization",
+  "profile": "aggressive",
+  "target_languages": ["rust"],
+  "preferred_target": "rust",
+  "validate": true,
+  "benchmark_iterations": 50,
+
+  "optimization": {
+    "simd_enabled": true,
+    "parallel_enabled": true,
+    "avx512_enabled": true,
+    "loop_unrolling": true,
+    "inlining_aggressive": true,
+    "vectorization_hints": true
+  },
+
+  "rust_specific": {
+    "opt_level": 3,
+    "lto": "fat",
+    "codegen_units": 1,
+    "target_cpu": "native",
+    "rayon_threads": 8,
+    "simd_width": 512,
+    "features": ["avx2", "avx512f", "sha"],
+    "inline_threshold": 500,
+    "panic": "abort"
+  },
+
+  "workload_type": "cpu_intensive",
+  "algorithm": "cryptographic_hashing",
+  "concurrency_model": "data_parallel"
+}
