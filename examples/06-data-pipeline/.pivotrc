@@ -1,0 +1,33 @@
+{
+  "project_name": "data-pipeline-etl",
+  "profile": "balanced",
+  "target_languages": ["cpp"],
+  "preferred_target": "cpp",
+  "validate": true,
+  "benchmark_iterations": 20,
+
+  "optimization": {
+    "parallel_enabled": true,
+    "openmp_enabled": true,
+    "simd_enabled": true,
+    "loop_unrolling": true,
+    "cache_optimization": true,
+    "memory_pooling": true
+  },
+
+  "cpp_specific": {
+    "std_version": "c++17",
+    "opt_level": "O3",
+    "march": "native",
+    "openmp_threads": 8,
+    "cache_line_size": 64,
+    "use_fast_math": true,
+    "inline_threshold": 300,
+    "vectorize": true
+  },
+
+  "workload_type": "data_intensive",
+  "algorithm": "etl_pipeline",
+  "concurrency_model": "task_parallel",
+  "data_access_pattern": "sequential_read_transform"
+}
