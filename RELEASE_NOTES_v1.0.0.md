@@ -1,16 +1,41 @@
-# NAAb Pivot v1.0.0 - Production Release
+<div align="center">
 
-**Release Date:** 2026-02-26
+# NAAb Pivot v1.0.0
 
-**Status:** ✅ Production Ready - Release Candidate
+## Production Release
+
+**Part of the [NAAb Language](https://github.com/b-macker/NAAb) Ecosystem**
 
 ---
 
-## 🎉 Introducing NAAb Pivot
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/b-macker/naab-pivot/releases/tag/v1.0.0)
+[![Release Date](https://img.shields.io/badge/released-2026--02--26-green.svg)]()
+[![NAAb Ecosystem](https://img.shields.io/badge/NAAb-Ecosystem-purple.svg)](https://github.com/b-macker/NAAb)
+[![Status](https://img.shields.io/badge/status-production_ready-brightgreen.svg)]()
 
-NAAb Pivot is a comprehensive **polyglot code evolution and optimization platform** that automatically transforms slow interpreted code into high-performance compiled versions while mathematically proving correctness through parity validation.
+**Polyglot Code Evolution & Optimization Platform**
 
-**In Simple Terms:** Point NAAb Pivot at your slow Python/Ruby/JavaScript code, and it will generate optimized Go/C++/Rust versions that are **3-60x faster** with **99.99% confidence** that they produce identical results.
+</div>
+
+---
+
+## 🎉 Welcome to NAAb Pivot v1.0.0
+
+**NAAb Pivot** joins the NAAb ecosystem as a production-ready platform for **polyglot code evolution and optimization**. Built on the NAAb Language foundation, it automatically transforms slow interpreted code into high-performance compiled versions while mathematically proving correctness.
+
+### What Does It Do?
+
+```
+Input:  Slow Python/Ruby/JS code
+Output: Fast Go/Rust/C++ code + Mathematical proof of correctness
+Result: 3-60x speedup with 99.99% confidence
+```
+
+### NAAb Ecosystem Integration
+
+- **Powered by:** [NAAb Language](https://github.com/b-macker/NAAb) - Polyglot scripting with governance
+- **Related:** [NAAb Bolo](https://github.com/b-macker/naab-bolo) - Polyglot code execution
+- **This Release:** NAAb Pivot - Code evolution & optimization
 
 ---
 
