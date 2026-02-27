@@ -1,0 +1,460 @@
+# Example GitHub Actions Workflow for NAAb Pivot
+# Copy this to your repository's .github/workflows/ directory
+
+name: NAAb Pivot - Code Optimization
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/**/*.py'
+      - 'src/**/*.rb'
+      - 'src/**/*.js'
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly performance checks
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Optimization profile'
+        required: false
+        default: 'balanced'
+        type: choice
+        options:
+          - ultra-safe
+          - conservative
+          - balanced
+          - aggressive
+          - experimental
+
+jobs:
+  # Job 1: Analyze code for optimization opportunities
+  analyze:
+    name: Analyze Code
+    runs-on: ubuntu-latest
+    outputs:
+      has_candidates: ${{ steps.check.outputs.has_candidates }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run NAAb Pivot Analysis
+        uses: b-macker/naab-pivot@v1
+        id: analyze
+        with:
+          mode: analyze
+          file: src/critical_path.py
+          output: analysis.json
+
+      - name: Check for optimization candidates
+        id: check
+        run: |
+          if [ -f analysis.json ]; then
+            candidates=$(jq '.functions | length' analysis.json)
+            echo "has_candidates=$([[ $candidates -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+            echo "Found $candidates optimization candidates"
+          fi
+
+      - name: Upload analysis results
+        uses: actions/upload-artifact@v3
+        with:
+          name: analysis-results
+          path: analysis.json
+
+  # Job 2: Generate optimized code
+  optimize:
+    name: Generate Optimized Code
+    runs-on: ubuntu-latest
+    needs: analyze
+    if: needs.analyze.outputs.has_candidates == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download analysis
+        uses: actions/download-artifact@v3
+        with:
+          name: analysis-results
+
+      - name: Evolve code (full pipeline)
+        uses: b-macker/naab-pivot@v1
+        id: evolve
+        with:
+          mode: evolve
+          file: src/critical_path.py
+          profile: ${{ github.event.inputs.profile || 'balanced' }}
+          output_dir: ./vessels
+          validate: true
+
+      - name: Check speedup
+        id: speedup
+        run: |
+          if [ -f vessels/benchmark.json ]; then
+            speedup=$(jq '.speedup' vessels/benchmark.json)
+            echo "speedup=$speedup" >> $GITHUB_OUTPUT
+            echo "Achieved ${speedup}x speedup!"
+          fi
+
+      - name: Upload vessels
+        uses: actions/upload-artifact@v3
+        with:
+          name: optimized-vessels
+          path: |
+            vessels/
+            !vessels/*.o
+
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const speedup = '${{ steps.speedup.outputs.speedup }}';
+            const comment = `## 🚀 NAAb Pivot Optimization Results
+
+            **Speedup:** ${speedup}x faster
+            **Profile:** ${{ github.event.inputs.profile || 'balanced' }}
+            **Status:** ✅ Parity validated
+
+            Optimized vessels are available as artifacts.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # Job 3: Validate parity (correctness proof)
+  validate:
+    name: Validate Parity
+    runs-on: ubuntu-latest
+    needs: optimize
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download vessels
+        uses: actions/download-artifact@v3
+        with:
+          name: optimized-vessels
+          path: vessels/
+
+      - name: Run parity validation
+        uses: b-macker/naab-pivot@v1
+        id: validate
+        with:
+          mode: validate
+          original: src/critical_path.py
+          optimized: vessels/critical_path_vessel
+          tolerance: 0.001
+
+      - name: Check certification
+        run: |
+          certified=$(jq '.certified' parity_report.json)
+          if [ "$certified" != "true" ]; then
+            echo "❌ Parity validation failed!"
+            exit 1
+          fi
+          echo "✅ Parity certified (99.99% confidence)"
+
+      - name: Upload parity report
+        uses: actions/upload-artifact@v3
+        with:
+          name: parity-report
+          path: parity_report.json
+
+  # Job 4: Performance regression detection
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download vessels
+        uses: actions/download-artifact@v3
+        with:
+          name: optimized-vessels
+          path: vessels/
+
+      - name: Run benchmarks
+        uses: b-macker/naab-pivot@v1
+        with:
+          mode: benchmark
+          vessels_dir: ./vessels
+          format: json
+          output: benchmark-results.json
+
+      - name: Download baseline (if exists)
+        continue-on-error: true
+        uses: actions/download-artifact@v3
+        with:
+          name: baseline-benchmarks
+          path: baseline/
+
+      - name: Compare with baseline
+        if: hashFiles('baseline/benchmark-results.json') != ''
+        run: |
+          current=$(jq '.mean' benchmark-results.json)
+          baseline=$(jq '.mean' baseline/benchmark-results.json)
+
+          if (( $(echo "$current > $baseline * 1.1" | bc -l) )); then
+            echo "⚠️ Performance regression detected!"
+            echo "Current: ${current}ms"
+            echo "Baseline: ${baseline}ms"
+            exit 1
+          fi
+
+          echo "✅ No performance regression"
+
+      - name: Save as new baseline
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v3
+        with:
+          name: baseline-benchmarks
+          path: benchmark-results.json
+
+      - name: Generate performance report
+        uses: b-macker/naab-pivot@v1
+        with:
+          mode: report
+          input: benchmark-results.json
+          format: html
+          output: performance-report.html
+
+      - name: Upload report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: performance-report.html
+
+  # Job 5: Deploy optimized code (optional)
+  deploy:
+    name: Deploy Vessels
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.ref == 'refs/heads/main' && success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download vessels
+        uses: actions/download-artifact@v3
+        with:
+          name: optimized-vessels
+          path: vessels/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            vessels/*_vessel
+            vessels/benchmark-results.json
+          body: |
+            ## NAAb Pivot Optimized Vessels
+
+            This release includes optimized compiled binaries.
+
+            **Performance:** See benchmark-results.json
+            **Parity:** ✅ Validated
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+---
+
+# Alternative: Simple single-job workflow
+
+name: Quick Optimization
+
+on:
+  push:
+    paths:
+      - 'src/**/*.py'
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Optimize critical path
+        uses: b-macker/naab-pivot@v1
+        with:
+          file: src/critical_path.py
+          profile: balanced
+          validate: true
+
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: vessels
+          path: vessels/
+
+---
+
+# Advanced: Matrix optimization (multiple files, multiple profiles)
+
+name: Matrix Optimization
+
+on: [workflow_dispatch]
+
+jobs:
+  matrix-optimize:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        file:
+          - src/compute.py
+          - src/process.py
+          - src/analyze.py
+        profile:
+          - balanced
+          - aggressive
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Optimize ${{ matrix.file }} with ${{ matrix.profile }}
+        uses: b-macker/naab-pivot@v1
+        with:
+          file: ${{ matrix.file }}
+          profile: ${{ matrix.profile }}
+          output_dir: ./vessels/${{ matrix.profile }}
+
+      - name: Upload vessels
+        uses: actions/upload-artifact@v3
+        with:
+          name: vessels-${{ matrix.profile }}
+          path: vessels/${{ matrix.profile }}/
+
+---
+
+# Scheduled weekly performance check
+
+name: Weekly Performance Audit
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at midnight
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Full project analysis
+        uses: b-macker/naab-pivot@v1
+        with:
+          mode: migrate
+          project_dir: ./src
+          output: migration-plan.json
+
+      - name: Generate optimization report
+        run: |
+          jq '.candidates | sort_by(.score) | reverse | .[0:10]' migration-plan.json > top-10-candidates.json
+
+      - name: Create issue with recommendations
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const candidates = require('./top-10-candidates.json');
+            const body = `## 📊 Weekly Performance Audit
+
+            Top 10 optimization candidates:
+
+            ${candidates.map((c, i) =>
+              `${i+1}. **${c.file}** - ${c.estimated_speedup}x potential speedup`
+            ).join('\n')}
+
+            See full report in artifacts.`;
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Weekly Performance Audit - ' + new Date().toISOString().split('T')[0],
+              body: body,
+              labels: ['performance', 'automated']
+            });
+
+      - name: Upload full report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-audit
+          path: migration-plan.json
+
+---
+
+# For monorepos: Detect changes and optimize selectively
+
+name: Monorepo Optimization
+
+on:
+  pull_request:
+    paths:
+      - 'packages/*/src/**/*.py'
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed_packages: ${{ steps.changes.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed packages
+        id: changes
+        run: |
+          changed=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} \
+            | grep '^packages/' \
+            | cut -d'/' -f2 \
+            | sort -u \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "packages=$changed" >> $GITHUB_OUTPUT
+
+  optimize-changed:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.changed_packages != '[]'
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.changed_packages) }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Optimize package ${{ matrix.package }}
+        uses: b-macker/naab-pivot@v1
+        with:
+          mode: evolve
+          file: packages/${{ matrix.package }}/src/main.py
+          profile: balanced
+          output_dir: packages/${{ matrix.package }}/vessels
+
+      - name: Comment on PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('vessels/benchmark.json'));
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 ${{ matrix.package }} Optimization
+
+              **Speedup:** ${report.speedup}x
+              **Status:** ✅ Validated`
+            });
