@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.compiler }}
           path: tests/results/
@@ -90,7 +90,7 @@ jobs:
           bash ../../naab/build/naab-lang bench-compilation.naab
 
       - name: Upload Benchmark Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-results
           path: tests/performance/*.json
