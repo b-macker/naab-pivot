@@ -206,8 +206,9 @@ Report (JSON/HTML/CSV/SARIF/Markdown)
 **NAAb Pivot** is part of the NAAb ecosystem:
 
 - **[NAAb Language](https://github.com/b-macker/NAAb)** — Core polyglot scripting language with governance
-- **[NAAb Bolo](https://github.com/b-macker/naab-bolo)** — Polyglot code executor and validator
-- **NAAb Pivot** (this project) — Code evolution and optimization platform
+- **[NAAb BOLO](https://github.com/b-macker/naab-bolo)** — Code governance & AI validation (50+ checks)
+- **NAAb Pivot** (this project) — Code evolution & optimization (3-60x speedups)
+- **[NAAb Passage](https://github.com/b-macker/naab-passage)** — Data gateway & PII protection (zero leakage)
 
 ---
 
