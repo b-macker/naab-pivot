@@ -164,7 +164,7 @@ runs:
         echo "::endgroup::"
 
     - name: Upload Vessels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v7
       with:
         name: naab-pivot-vessels
         path: ${{ inputs.output }}/
