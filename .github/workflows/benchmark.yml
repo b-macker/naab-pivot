@@ -75,7 +75,7 @@ jobs:
           submodules: recursive
 
       - name: Download Current Benchmarks
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: benchmark-report-${{ github.run_number }}
           path: current/
