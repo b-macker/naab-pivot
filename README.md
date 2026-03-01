@@ -1,8 +1,11 @@
 # NAAb Pivot
 
+[![CI](https://github.com/b-macker/naab-pivot/actions/workflows/ci.yml/badge.svg)](https://github.com/b-macker/naab-pivot/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/b-macker/naab-pivot/releases/tag/v1.0.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![NAAb](https://img.shields.io/badge/NAAb-Ecosystem-purple.svg)](https://github.com/b-macker/NAAb)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Discussions](https://img.shields.io/badge/Discussions-enabled-blue.svg)](https://github.com/b-macker/naab-pivot/discussions)
 
 **Polyglot code evolution and optimization platform** built on the [NAAb Language](https://github.com/b-macker/NAAb). Automatically analyze slow code, generate optimized versions in compiled languages, and prove correctness with statistical parity validation.
 
