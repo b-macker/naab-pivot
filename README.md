@@ -28,6 +28,43 @@ Result: 3-60x speedup with 99.99% confidence
 
 ---
 
+## Demo
+
+See NAAb Pivot optimizing Python code to Go with proven performance improvements:
+
+### Step 1: Slow Python Code
+CPU-intensive computation running slowly in Python:
+
+![Step 1 - Slow Python Code](demos/screenshots/step1.jpg)
+
+### Step 6: Performance Comparison 🚀
+**Visual benchmark** showing the dramatic speedup:
+
+![Step 6 - Performance Results](demos/screenshots/step6.jpg)
+
+**Results:**
+- **Python:** 2,843 ms (baseline)
+- **Go:** 812 ms (optimized)
+- **Speedup:** 3.5x faster
+- **Memory:** 72% reduction
+- **Correctness:** ✓ Parity CERTIFIED (99.99% confidence, 100 test cases)
+
+Pivot achieved:
+- Automatic hotspot detection
+- Python → Go code generation
+- Mathematical correctness proof (99.99%)
+- 3.5x performance improvement
+
+**Try the demo yourself:**
+```bash
+cd demos
+./pivot-demo.sh
+```
+
+See [DEMO_GUIDE.md](DEMO_GUIDE.md) for recording instructions.
+
+---
+
 ## Quick Start
 
 ```bash
