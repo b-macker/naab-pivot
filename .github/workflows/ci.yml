@@ -29,12 +29,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake python3 nodejs
+          sudo apt-get install -y build-essential cmake python3 nodejs libcurl4-openssl-dev libssl-dev
 
       - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install cmake node
+          brew install cmake node curl openssl
 
       - name: Build NAAb
         run: bash build.sh
