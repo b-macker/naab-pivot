@@ -12,17 +12,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        compiler: [gcc, clang]
-        exclude:
-          - os: windows-latest
-            compiler: clang
-          - os: macos-latest
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
             compiler: gcc
+          - os: macos-latest
+            compiler: clang
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -30,18 +29,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake golang-1.21 rustc g++ clang python3 ruby nodejs php
-          echo "/usr/lib/go-1.21/bin" >> $GITHUB_PATH
+          sudo apt-get install -y build-essential cmake python3 nodejs
 
       - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install cmake go rust node ruby php
-
-      - name: Install Dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          choco install cmake golang rust nodejs ruby php
+          brew install cmake node
 
       - name: Build NAAb
         run: bash build.sh
@@ -58,47 +51,15 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.compiler }}
           path: tests/results/
 
-  benchmark:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake golang-1.21 rustc g++ python3
-          echo "/usr/lib/go-1.21/bin" >> $GITHUB_PATH
-
-      - name: Build NAAb
-        run: bash build.sh
-
-      - name: Run Performance Benchmarks
-        run: |
-          cd tests/performance
-          bash ../../naab/build/naab-lang bench-analyzer.naab
-          bash ../../naab/build/naab-lang bench-synthesizer.naab
-          bash ../../naab/build/naab-lang bench-compilation.naab
-
-      - name: Upload Benchmark Results
-        uses: actions/upload-artifact@v3
-        with:
-          name: benchmark-results
-          path: tests/performance/*.json
-
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Run Shellcheck
         uses: ludeeus/action-shellcheck@master

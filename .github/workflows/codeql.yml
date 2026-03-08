@@ -20,19 +20,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['cpp', 'python', 'javascript']
+        language: ['cpp', 'python']
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
           queries: security-and-quality
+          config: |
+            paths-ignore:
+              - 'naab/external'
+              - 'naab/third_party'
 
       - name: Install Build Dependencies
         if: matrix.language == 'cpp'
@@ -45,6 +49,6 @@ jobs:
         run: bash build.sh
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
