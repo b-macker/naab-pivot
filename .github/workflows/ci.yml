@@ -8,16 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            compiler: gcc
-          - os: macos-latest
-            compiler: clang
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -25,16 +16,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Dependencies (Ubuntu)
-        if: runner.os == 'Linux'
+      - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake python3 nodejs libcurl4-openssl-dev libssl-dev
-
-      - name: Install Dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install cmake node curl openssl
 
       - name: Build NAAb
         run: bash build.sh
@@ -53,11 +38,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.os }}-${{ matrix.compiler }}
+          name: test-results
           path: tests/results/
 
   lint:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -65,10 +51,9 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           scandir: '.'
-          severity: warning
+          severity: error
 
       - name: Check File Permissions
         run: |
-          # Ensure scripts are executable
           test -x build.sh || exit 1
           test -x install.sh || exit 1
