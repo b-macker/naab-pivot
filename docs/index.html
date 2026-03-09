@@ -53,6 +53,7 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -60,7 +61,14 @@
             color: var(--text);
             line-height: 1.7;
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
+
+        .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease, transform 0.8s ease; }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
 
         .container { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
 
@@ -128,8 +136,8 @@
         .section-header p { color: var(--text-secondary); font-size: 1.05rem; max-width: 560px; margin: 0 auto; }
 
         .features-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        .f-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; transition: border-color 0.2s; }
-        .f-card:hover { border-color: var(--border-highlight); }
+        .f-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; transition: all 0.3s ease; }
+        .f-card:hover { border-color: var(--border-highlight); transform: translateY(-4px); }
         .f-card .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 16px; }
         .f-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
         .f-card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; }
@@ -151,8 +159,8 @@
         .warn { color: var(--orange); } .num { color: var(--cyan); }
 
         .ecosystem-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        .eco-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; text-align: center; transition: border-color 0.2s; text-decoration: none; }
-        .eco-card:hover { border-color: var(--border-highlight); }
+        .eco-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; text-align: center; transition: all 0.3s ease; text-decoration: none; }
+        .eco-card:hover { border-color: var(--border-highlight); transform: translateY(-4px); }
         .eco-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; color: var(--text); }
         .eco-card p { color: var(--text-muted); font-size: 0.85rem; }
         .eco-card .eco-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
@@ -222,10 +230,10 @@
 
 <div class="container" style="padding-bottom: 60px;">
     <div class="stats-bar">
-        <div class="stat"><div class="num">8</div><div class="label">Target Languages</div></div>
-        <div class="stat"><div class="num">3-60x</div><div class="label">Speedups</div></div>
-        <div class="stat"><div class="num">99.99%</div><div class="label">Confidence</div></div>
-        <div class="stat"><div class="num">10</div><div class="label">Proven Examples</div></div>
+        <div class="stat reveal"><div class="num">8</div><div class="label">Target Languages</div></div>
+        <div class="stat reveal reveal-delay-1"><div class="num">3-60x</div><div class="label">Speedups</div></div>
+        <div class="stat reveal reveal-delay-2"><div class="num">99.99%</div><div class="label">Confidence</div></div>
+        <div class="stat reveal reveal-delay-3"><div class="num">10</div><div class="label">Proven Examples</div></div>
     </div>
 </div>
 
@@ -240,32 +248,32 @@
         </div>
 
         <div class="features-grid">
-            <div class="f-card">
+            <div class="f-card reveal">
                 <div class="icon icon-green">&#128270;</div>
                 <h3>Analyze</h3>
                 <p>AST-based code analysis detects hotspots automatically across 8 source languages. Identifies CPU-bound, I/O-bound, and memory-bound patterns.</p>
             </div>
-            <div class="f-card">
+            <div class="f-card reveal reveal-delay-1">
                 <div class="icon icon-purple">&#9881;</div>
                 <h3>Synthesize</h3>
                 <p>Template-based code generation targeting Go, Rust, C++, Zig, and Julia. Idiomatic output, not mechanical translation.</p>
             </div>
-            <div class="f-card">
+            <div class="f-card reveal reveal-delay-2">
                 <div class="icon icon-cyan">&#9745;</div>
                 <h3>Validate</h3>
                 <p>Statistical parity validation with 100+ test cases. 99.99% confidence that optimized code produces identical results.</p>
             </div>
-            <div class="f-card">
+            <div class="f-card reveal">
                 <div class="icon icon-orange">&#9201;</div>
                 <h3>Benchmark</h3>
                 <p>Multi-iteration benchmarks with regression detection. Track performance over time with multi-format reports.</p>
             </div>
-            <div class="f-card">
+            <div class="f-card reveal reveal-delay-1">
                 <div class="icon icon-blue">&#128200;</div>
                 <h3>Dashboard</h3>
                 <p>Interactive web visualization of performance data. Compare languages side-by-side, drill into individual benchmarks.</p>
             </div>
-            <div class="f-card">
+            <div class="f-card reveal reveal-delay-2">
                 <div class="icon icon-red">&#128295;</div>
                 <h3>Incremental</h3>
                 <p>Optimize critical paths, leave the rest unchanged. No full rewrite required. Drop in a faster function, keep everything else.</p>
@@ -285,7 +293,7 @@
         </div>
 
         <div class="code-showcase">
-            <div class="code-panel">
+            <div class="code-panel reveal">
                 <div class="tab-bar">
                     <div class="tab active">Optimize</div>
                 </div>
@@ -307,7 +315,7 @@
 <span class="ok">Confidence: 99.99%</span>
 <span class="ok">Parity: CERTIFIED</span></pre>
             </div>
-            <div class="code-panel">
+            <div class="code-panel reveal reveal-delay-1">
                 <div class="tab-bar">
                     <div class="tab active">Benchmark</div>
                 </div>
@@ -344,17 +352,17 @@
         </div>
 
         <div class="ecosystem-grid">
-            <a href="https://b-macker.github.io/NAAb/" class="eco-card">
+            <a href="https://b-macker.github.io/NAAb/" class="eco-card reveal">
                 <div class="eco-badge eco-main">Core Language</div>
                 <h3>NAAb Language</h3>
                 <p>The polyglot programming language with built-in LLM governance. 12 languages, one file. The foundation everything is built on.</p>
             </a>
-            <a href="https://b-macker.github.io/naab-bolo/" class="eco-card">
+            <a href="https://b-macker.github.io/naab-bolo/" class="eco-card reveal reveal-delay-1">
                 <div class="eco-badge eco-tool">Governance Tool</div>
                 <h3>NAAb BOLO</h3>
                 <p>Code governance and AI validation. 50+ checks catch oversimplified stubs, hallucinated APIs, and incomplete logic.</p>
             </a>
-            <a href="https://b-macker.github.io/naab-passage/" class="eco-card">
+            <a href="https://b-macker.github.io/naab-passage/" class="eco-card reveal reveal-delay-2">
                 <div class="eco-badge eco-tool">Security Tool</div>
                 <h3>NAAb Passage</h3>
                 <p>Sovereign data gateway and PII protection. Zero leakage to LLMs and APIs. HIPAA, GDPR, SOC2 compliant.</p>
@@ -389,6 +397,18 @@
         </div>
     </div>
 </footer>
+
+<script>
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+const nav = document.querySelector('nav');
+window.addEventListener('scroll', () => {
+    nav.style.background = window.scrollY > 50 ? 'rgba(10, 14, 23, 0.95)' : 'rgba(10, 14, 23, 0.85)';
+});
+</script>
 
 </body>
 </html>
