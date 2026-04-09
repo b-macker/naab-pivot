@@ -148,7 +148,9 @@ fn remove_cache_entry(entries, src_path) {
 
 fn save_cache() {
     // Ensure cache directory exists
-    <<bash mkdir -p .cache 2>/dev/null || true >>
+    <<bash
+    mkdir -p .cache 2>/dev/null || true
+>>
 
     // Save cache to disk
     try {

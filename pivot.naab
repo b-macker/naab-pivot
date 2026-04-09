@@ -253,7 +253,9 @@ fn run_evolve(args, config) {
 
     // Save blueprint
     let blueprint_path = output_dir + "/blueprint.json"
-    <<bash[output_dir] mkdir -p "$output_dir" >>
+    <<bash[output_dir]
+    mkdir -p "$output_dir"
+>>
     file.write(blueprint_path, json.stringify(analysis, true))
 
     // Step 2: Synthesize

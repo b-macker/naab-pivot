@@ -29,7 +29,9 @@ export fn generate_vessels(blueprint_path) {
     io.write("  [SYNTHESIZER] Optimization profile: ", profile, "\n\n")
 
     // Ensure output directory exists
-    <<bash[out_dir] mkdir -p "$out_dir" >>
+    <<bash[out_dir]
+    mkdir -p "$out_dir"
+>>
 
     // Load profile configuration
     let profile_config = load_profile(profile)
