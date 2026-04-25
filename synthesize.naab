@@ -22,8 +22,8 @@ export fn generate_vessels(blueprint_path) {
     use template_engine
 
     let vessels = []
-    let out_dir = env.get_var("PIVOT_OUTPUT") || "./vessels/"
-    let profile = env.get_var("PIVOT_PROFILE") || "balanced"
+    let out_dir = env.get("PIVOT_OUTPUT") || "./vessels/"
+    let profile = env.get("PIVOT_PROFILE") || "balanced"
 
     io.write("  [SYNTHESIZER] Output directory: ", out_dir, "\n")
     io.write("  [SYNTHESIZER] Optimization profile: ", profile, "\n\n")

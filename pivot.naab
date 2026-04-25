@@ -54,8 +54,8 @@ fn load_config() {
     // Load .pivotrc from current directory, then home directory, then use defaults
     let config_paths = [
         "./.pivotrc",
-        env.get_var("HOME") + "/.pivotrc",
-        env.get_var("HOME") + "/.config/naab-pivot/config.json"
+        env.get("HOME") + "/.pivotrc",
+        env.get("HOME") + "/.config/naab-pivot/config.json"
     ]
 
     for path in config_paths {
@@ -74,7 +74,7 @@ fn load_config() {
     return {
         "default_profile": "balanced",
         "default_target": "auto",
-        "cache_dir": env.get_var("HOME") + "/.cache/naab-pivot",
+        "cache_dir": env.get("HOME") + "/.cache/naab-pivot",
         "output_dir": "./vessels",
         "dashboard_port": 8080
     }

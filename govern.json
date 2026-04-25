@@ -1,0 +1,25 @@
+{
+  "version": "1.0.0",
+  "project_name": "NAAb-Pivot",
+  "mode": "enforce",
+  "description": "Pivot — Polyglot Code Evolution. Optimize slow code to fast compiled code.",
+
+  "languages": {
+    "require_explicit": true,
+    "allowed": ["python", "javascript", "bash", "shell", "ruby", "php"]
+  },
+
+  "capabilities": {
+    "network": false,
+    "shell": true,
+    "filesystem": {
+      "allowed_paths": ["./", "/data/data/com.termux/files/home/"]
+    }
+  },
+
+  "code_quality": {
+    "no_secrets": { "enabled": true, "level": "hard" },
+    "no_stub_functions": { "enabled": true, "level": "soft" },
+    "no_todo_comments": { "enabled": true, "level": "advisory" }
+  }
+}

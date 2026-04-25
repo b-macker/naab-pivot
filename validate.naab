@@ -80,7 +80,7 @@ export fn validate_parity(legacy_path, vessel_path) {
     io.write("  Total vessel time: ", time_vessel, "ms\n\n")
 
     // Parity check with statistical analysis
-    let tolerance_str = env.get_var("PIVOT_TOLERANCE") || "0.001"
+    let tolerance_str = env.get("PIVOT_TOLERANCE") || "0.001"
     let threshold = json.parse(tolerance_str)
 
     let differences = []
