@@ -1,19 +1,26 @@
-# NAAb Pivot
+# NAAb Pivot — Rewrite Slow AI-Generated Code to Fast Compiled Code
 
 [![CI](https://github.com/b-macker/naab-pivot/actions/workflows/ci.yml/badge.svg)](https://github.com/b-macker/naab-pivot/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/b-macker/naab-pivot/releases/tag/v1.0.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![NAAb](https://img.shields.io/badge/NAAb-Ecosystem-purple.svg)](https://github.com/b-macker/NAAb)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Discussions](https://img.shields.io/badge/Discussions-enabled-blue.svg)](https://github.com/b-macker/naab-pivot/discussions)
 
-**Polyglot code evolution and optimization platform** built on the [NAAb Language](https://github.com/b-macker/NAAb). Automatically analyze slow code, generate optimized versions in compiled languages, and prove correctness with statistical parity validation.
+AI models default to Python. Python is often the wrong choice for performance-critical code. Pivot analyzes your slow Python/Ruby/JS, rewrites it to Go/Rust/C++, and proves the output is statistically identical.
 
 ```
-Input:  Slow Python/Ruby/JS code
-Output: Fast Go/Rust/C++ code + Mathematical proof of correctness
-Result: 3-60x speedup with 99.99% confidence
+$ naab-lang pivot.naab analyze app.py
+
+  Hotspot: process_batch() — 847ms avg, called 10,000x/min
+  Candidate: rewrite to Go
+
+$ naab-lang pivot.naab rewrite app.py:process_batch --target go --prove
+
+  ✓ Rewrite complete
+  ✓ Correctness verified (1,000 test cases, 99.99% parity)
+  ✓ Speedup: 34x  (847ms → 24ms)
 ```
+
+3–60x speedups · 8 target languages · Statistical proof of correctness · Part of the [NAAb ecosystem](https://github.com/b-macker/NAAb)
 
 ---
 
@@ -274,3 +281,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 _NAAb Pivot — Polyglot evolution made simple._
+
